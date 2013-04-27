@@ -1,134 +1,118 @@
 
-TILE_SIZE = 32
-K = 1.0 / 32.0
-TILE_WIDTH = 26
-TILE_HEIGHT = 16
-EMPTY = 0
-WALL = 1
-
-pixToTile = (x) -> Math.floor(K*x)
-
 class Tile
 	constructor: (i) ->
 		@x = i % TILE_WIDTH
 		@y = (i - @x) / TILE_WIDTH
-		@type = EMPTY
+		@type = TILE_TYPE_EMPTY
+		@body = null
 
-	clear: -> @type = EMPTY
+	isSolid: -> @type == TILE_TYPE_SOLID
+	isVisible: -> @type != TILE_TYPE_EMPTY
 
-	isSolid: -> @type == WALL
+	initPhysics: ->
+		return unless @isSolid()
+		fixDef = new FixtureDef
+		fixDef.density = 1
+		fixDef.friction = 0.5
+		fixDef.restitution = 0.2
+		bodyDef = new BodyDef
+		bodyDef.type = Body.b2_staticBody
+		bodyDef.position.Set(@x+0.5, @y+0.5)
+		fixDef.shape = new PolygonShape
+		fixDef.shape.SetAsBox(0.5, 0.5)
+		@body = world.physics.CreateBody(bodyDef)
+		@body.CreateFixture(fixDef)
 
-	draw: ->
-		if @type == WALL
-			g.fillStyle = 'rgba(24, 24, 48, 1.0)'
-			g.fillRect(@x*TILE_SIZE, @y*TILE_SIZE, TILE_SIZE-1, TILE_SIZE-1)
-
-STATUS_WALKING = 0
-STATUS_FALLING = 1
-
-class HeroSprite
-	constructor: ->
-		@x = 0; @y = 0
-		@vx = 0; @vy = 0
-		@status = STATUS_WALKING
-
-	tick: ->
-		switch @status
-			
-			when STATUS_WALKING
-				xprev = pixToTile(@x)
-				@x += @vx * deltaSeconds()
-				xnext = pixToTile(@x)
-				# did we cross a tile boundary?
-				unless xnext == xprev
-					top = pixToTile(@y)
-					if @vx > 0
-						# did we fall right
-						unless world.getTile(xnext, top+2)?.isSolid()
-							@x = TILE_SIZE * xnext
-							@vy = 128
-							@status = STATUS_FALLING
-						# did we collide right?
-						else if world.getTile(xnext+1, top)?.isSolid() or world.getTile(xnext+1, top+1)?.isSolid()
-							@vx = -@vx;
-							@x = TILE_SIZE * xnext
-					else
-						# did we fall left?
-						unless world.getTile(xnext+1, top+2)?.isSolid()
-							@x = TILE_SIZE * (xnext+1)
-							@vy = 128
-							@status = STATUS_FALLING
-						# did we collide left?
-						else if world.getTile(xnext, top)?.isSolid() or world.getTile(xnext, top+1)?.isSolid()
-							@vx = -@vx;
-							@x = TILE_SIZE * (xnext+1)
-			
-			when STATUS_FALLING
-				@vy += 1024 * deltaSeconds()
-				@y += @vy * deltaSeconds()
-				# did we hit the ground?
-				x = pixToTile(@x)
-				y = pixToTile(@y)+2
-				if world.getTile(x, y)?.isSolid()
-					@vy = 0
-					@y -= @y % TILE_SIZE
-					@status = STATUS_WALKING
+	erase: ->
+		return false if @type == TILE_TYPE_EMPTY
+		if @body?
+			world.physics.DestroyBody(@body) 
+			@body = null
+		@type = TILE_TYPE_EMPTY
+		true
 
 	draw: ->
-		frame = Math.floor(seconds() * 10) % 10
-		w = images.walk.width
-		h = images.walk.height / 10
-		# g.fillStyle = 'rgba(255, 255, 0, 0.333)'
-		# g.fillRect(@x, @y, 32, 64)
-		if @vx < 0
-			g.save()
-			g.translate(@x-6, @y)
-			g.translate(w/2, 0)
-			g.scale(-1, 1)
-			g.drawImage(images.walk, 0, frame * h, w, h, -w/2, 0, w, h)
-			g.restore()
-		else
-			g.drawImage(images.walk, 0, frame * h, w, h, @x-6, @y, w, h)
-
-class CupcakeSprite
-	constructor: ->
-		@x = 0; @y = 0
-
-	draw: ->
-		frame = Math.floor(seconds() * 7.5) % 6
-		w = images.cupcake.width
-		h = images.cupcake.height / 6
-		g.drawImage(images.cupcake, 0, frame * h, w, h, @x, @y+5, w, h)
-
+		return unless @isVisible()
+		x = @x<<5; y = @y<<5
+		g.drawImage(images.testBaked, x+x, y+y, 64, 64, x-16, y-16, 64, 64)
 
 class World
 	constructor: ->
-		@offsetX = 0.5 * (canvas.width - TILE_SIZE * TILE_WIDTH) + 2
-		@offsetY = 0.5 * (canvas.height - TILE_SIZE * TILE_HEIGHT) + 20
+		@offsetX = 0.5 * (canvas.width - WORLD_WIDTH) + 2
+		@offsetY = 0.5 * (canvas.height - WORLD_HEIGHT) + 20
 		@tiles = (new Tile(i) for i in [0..(TILE_WIDTH*TILE_HEIGHT-1)])
 
 		@hero = new HeroSprite
 		@cupcake = new CupcakeSprite
 
+		# create a bounded physics world
+		@physics = new b2World(new Vec2(0, GRAVITY / PIXELS_PER_METER), no)
+		
+		# add walls
+		fixDef = new FixtureDef
+		fixDef.density = 1.0
+		fixDef.friction = 0.5
+		fixDef.restitution = 0.2
+		bodyDef = new BodyDef
+		bodyDef.type = Body.b2_staticBody
+		bodyDef.position.Set(TILE_WIDTH/2, TILE_HEIGHT+0.5)
+		fixDef.shape = new PolygonShape
+		fixDef.shape.SetAsBox(TILE_WIDTH/2+1, 0.5)
+		# @physics.CreateBody(bodyDef).CreateFixture(fixDef)
+		bodyDef.position.y = -0.5
+		@physics.CreateBody(bodyDef).CreateFixture(fixDef)
+		fixDef.shape = new PolygonShape
+		fixDef.shape.SetAsBox(0.5, TILE_HEIGHT/2)
+		bodyDef.position.Set(-0.5, TILE_HEIGHT/2)
+		@physics.CreateBody(bodyDef).CreateFixture(fixDef);
+		bodyDef.position.x = TILE_WIDTH+0.5
+		@physics.CreateBody(bodyDef).CreateFixture(fixDef);
+
+		if DEBUG_PHYSICS
+			debugDraw = new DebugDraw()
+			debugDraw.SetSprite(g)
+			debugDraw.SetDrawScale(PIXELS_PER_METER)
+			debugDraw.SetFillAlpha(0.5)
+			debugDraw.SetLineThickness(4.0)
+			debugDraw.SetFlags(DebugDraw.e_shapeBit | DebugDraw.e_jointBit)
+			@physics.SetDebugDraw(debugDraw)
+
+
+		# physics test
+		bodyDef.type = Body.b2_dynamicBody;
+		for i in [0..9]
+			if Math.random() > 0.5
+				fixDef.shape = new PolygonShape
+				fixDef.shape.SetAsBox(randRange(0.1, 1), randRange(0.1,1))
+			else
+				fixDef.shape = new CircleShape(randRange(0.1,2))
+			bodyDef.position.Set(randRange(1, TILE_WIDTH-1), randRange(1, 4))
+			@physics.CreateBody(bodyDef).CreateFixture(fixDef)
 
 	tick: ->
+		@physics.Step(deltaSeconds(), 10, 10)
+
 		# erase tiles?
 		if mouseDown
-			tile = @tileUnder(mouseX, mouseY)
-			tile.clear() if tile?
-		
+			@tileUnder(mouseX, mouseY)?.erase()
+		@cupcake.tick()
 		@hero.tick()
 
 	draw: ->
 		g.save()
 		g.translate(@offsetX, @offsetY)
+		@physics.DrawDebugData() if DEBUG_PHYSICS
 		tile.draw() for tile in @tiles				
 		@cupcake.draw()
 		@hero.draw()
 		g.restore()
 
 	getTile: (x,y) -> 
-		if x >= 0 and x < TILE_WIDTH and y >= 0 and y < TILE_HEIGHT then @tiles[Math.floor(x) + TILE_WIDTH * Math.floor(y)] else null
+		if x >= 0 and x < TILE_WIDTH and y >= 0 and y < TILE_HEIGHT
+			@tiles[Math.floor(x) + TILE_WIDTH * Math.floor(y)] 
+		else 
+			null
+
 	tileUnder: (px, py) -> 
 		@getTile(
 			Math.floor((px - @offsetX) / TILE_SIZE), 
@@ -137,17 +121,14 @@ class World
 
 setupTest = ->
 	for i in [0..TILE_WIDTH-1]
-		world.getTile(i, 15).type = WALL
+		world.getTile(i, 14).type = TILE_TYPE_SOLID
+		world.getTile(i, 15).type = TILE_TYPE_DISTRACTION
 
-	for i in [0..4]
-		world.getTile(i, 11).type = WALL
+	tile.initPhysics() for tile in world.tiles
 
-	for i in [0..TILE_HEIGHT-1]
-		world.getTile(0,i).type = WALL
-		world.getTile(10,i).type = WALL
 	world.hero.x = 32
-	world.hero.y = 9*32
-	world.hero.vx = 128
+	world.hero.y = 12*32
+	world.hero.vx = 16
 
 	world.cupcake.x = 20*32
-	world.cupcake.y = 13*32
+	world.cupcake.y = 9*32

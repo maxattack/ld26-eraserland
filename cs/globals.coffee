@@ -1,3 +1,4 @@
+
 TAU = Math.PI + Math.PI
 
 setMessage = (msg) ->
@@ -23,6 +24,7 @@ images = new ImageGroup [
 	'images/background.jpg'
 	'images/walk.png'
 	'images/cupcake.png'
+	'images/test_baked.png'
 ]
 
 pencil = null
@@ -39,6 +41,28 @@ queueFrame = (state) ->
 	# enqueue next frame
 	requestAnimationFrame state
 
-drawBackground = -> 
-	#g.clearRect(0, 0, canvas.width, canvas.height)
-	g.drawImage images.background, 0, 0
+clearBackground = -> 
+	g.clearRect(0, 0, canvas.width, canvas.height)
+	#g.drawImage images.background, 0, 0
+
+TILE_SIZE = 32
+TILE_WIDTH = 26
+TILE_HEIGHT = 16
+WORLD_WIDTH = TILE_SIZE * TILE_WIDTH
+WORLD_HEIGHT = TILE_SIZE * TILE_HEIGHT
+
+
+GRAVITY = 1024
+
+TILE_TYPE_EMPTY = 0
+TILE_TYPE_SOLID = 1
+TILE_TYPE_DISTRACTION = 2
+
+K = 1.0 / 32.0
+pixToTile = (x) -> Math.floor(K*x)
+
+PIXELS_PER_METER = 32
+
+DEBUG_PHYSICS = yes
+
+

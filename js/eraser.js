@@ -30,7 +30,7 @@
 	}
 }());
 ;
-  var CupcakeSprite, EMPTY, HeroSprite, ImageGroup, K, Pencil, STATUS_FALLING, STATUS_WALKING, TAU, TILE_HEIGHT, TILE_SIZE, TILE_WIDTH, Tile, WALL, World, canvas, deltaSeconds, drawBackground, dt, g, images, mouseDown, mousePressed, mouseReleased, mouseX, mouseY, pencil, pixToTile, queueFrame, rawMillis, seconds, setMessage, setupTest, time, world;
+  var Body, BodyDef, CUPCAKE_STATUS_FALLING, CUPCAKE_STATUS_IDLE, CircleShape, CupcakeSprite, DEBUG_PHYSICS, DebugDraw, Fixture, FixtureDef, GRAVITY, HERO_STATUS_FALLING, HERO_STATUS_WALKING, HeroSprite, ImageGroup, K, MassData, PIXELS_PER_METER, Pencil, PolygonShape, TAU, TILE_HEIGHT, TILE_SIZE, TILE_TYPE_DISTRACTION, TILE_TYPE_EMPTY, TILE_TYPE_SOLID, TILE_WIDTH, Tile, Vec2, WORLD_HEIGHT, WORLD_WIDTH, World, b2World, canvas, clearBackground, deltaSeconds, dt, g, images, mouseDown, mousePressed, mouseReleased, mouseX, mouseY, pencil, pixToTile, queueFrame, randRange, rawMillis, seconds, setMessage, setupTest, time, world;
 
   ImageGroup = (function() {
     function ImageGroup(paths) {
@@ -89,6 +89,30 @@
 
   })();
 
+  randRange = function(x, y) {
+    return x + Math.random() * (y - x);
+  };
+
+  b2World = Box2D.Dynamics.b2World;
+
+  Vec2 = Box2D.Common.Math.b2Vec2;
+
+  BodyDef = Box2D.Dynamics.b2BodyDef;
+
+  Body = Box2D.Dynamics.b2Body;
+
+  FixtureDef = Box2D.Dynamics.b2FixtureDef;
+
+  Fixture = Box2D.Dynamics.b2Fixture;
+
+  MassData = Box2D.Collision.Shapes.b2MassData;
+
+  PolygonShape = Box2D.Collision.Shapes.b2PolygonShape;
+
+  CircleShape = Box2D.Collision.Shapes.b2CircleShape;
+
+  DebugDraw = Box2D.Dynamics.b2DebugDraw;
+
   TAU = Math.PI + Math.PI;
 
   setMessage = function(msg) {
@@ -125,7 +149,7 @@
     return 0.001 * dt;
   };
 
-  images = new ImageGroup(['images/pencil.png', 'images/background.jpg', 'images/walk.png', 'images/cupcake.png']);
+  images = new ImageGroup(['images/pencil.png', 'images/background.jpg', 'images/walk.png', 'images/cupcake.png', 'images/test_baked.png']);
 
   pencil = null;
 
@@ -140,9 +164,37 @@
     return requestAnimationFrame(state);
   };
 
-  drawBackground = function() {
-    return g.drawImage(images.background, 0, 0);
+  clearBackground = function() {
+    return g.clearRect(0, 0, canvas.width, canvas.height);
   };
+
+  TILE_SIZE = 32;
+
+  TILE_WIDTH = 26;
+
+  TILE_HEIGHT = 16;
+
+  WORLD_WIDTH = TILE_SIZE * TILE_WIDTH;
+
+  WORLD_HEIGHT = TILE_SIZE * TILE_HEIGHT;
+
+  GRAVITY = 1024;
+
+  TILE_TYPE_EMPTY = 0;
+
+  TILE_TYPE_SOLID = 1;
+
+  TILE_TYPE_DISTRACTION = 2;
+
+  K = 1.0 / 32.0;
+
+  pixToTile = function(x) {
+    return Math.floor(K * x);
+  };
+
+  PIXELS_PER_METER = 32;
+
+  DEBUG_PHYSICS = true;
 
   Pencil = (function() {
     function Pencil() {
@@ -176,152 +228,74 @@
 
   })();
 
-  TILE_SIZE = 32;
-
-  K = 1.0 / 32.0;
-
-  TILE_WIDTH = 26;
-
-  TILE_HEIGHT = 16;
-
-  EMPTY = 0;
-
-  WALL = 1;
-
-  pixToTile = function(x) {
-    return Math.floor(K * x);
-  };
-
   Tile = (function() {
     function Tile(i) {
       this.x = i % TILE_WIDTH;
       this.y = (i - this.x) / TILE_WIDTH;
-      this.type = EMPTY;
+      this.type = TILE_TYPE_EMPTY;
+      this.body = null;
     }
 
-    Tile.prototype.clear = function() {
-      return this.type = EMPTY;
+    Tile.prototype.isSolid = function() {
+      return this.type === TILE_TYPE_SOLID;
     };
 
-    Tile.prototype.isSolid = function() {
-      return this.type === WALL;
+    Tile.prototype.isVisible = function() {
+      return this.type !== TILE_TYPE_EMPTY;
+    };
+
+    Tile.prototype.initPhysics = function() {
+      var bodyDef, fixDef;
+
+      if (!this.isSolid()) {
+        return;
+      }
+      fixDef = new FixtureDef;
+      fixDef.density = 1;
+      fixDef.friction = 0.5;
+      fixDef.restitution = 0.2;
+      bodyDef = new BodyDef;
+      bodyDef.type = Body.b2_staticBody;
+      bodyDef.position.Set(this.x + 0.5, this.y + 0.5);
+      fixDef.shape = new PolygonShape;
+      fixDef.shape.SetAsBox(0.5, 0.5);
+      this.body = world.physics.CreateBody(bodyDef);
+      return this.body.CreateFixture(fixDef);
+    };
+
+    Tile.prototype.erase = function() {
+      if (this.type === TILE_TYPE_EMPTY) {
+        return false;
+      }
+      if (this.body != null) {
+        world.physics.DestroyBody(this.body);
+        this.body = null;
+      }
+      this.type = TILE_TYPE_EMPTY;
+      return true;
     };
 
     Tile.prototype.draw = function() {
-      if (this.type === WALL) {
-        g.fillStyle = 'rgba(24, 24, 48, 1.0)';
-        return g.fillRect(this.x * TILE_SIZE, this.y * TILE_SIZE, TILE_SIZE - 1, TILE_SIZE - 1);
+      var x, y;
+
+      if (!this.isVisible()) {
+        return;
       }
+      x = this.x << 5;
+      y = this.y << 5;
+      return g.drawImage(images.testBaked, x + x, y + y, 64, 64, x - 16, y - 16, 64, 64);
     };
 
     return Tile;
 
   })();
 
-  STATUS_WALKING = 0;
-
-  STATUS_FALLING = 1;
-
-  HeroSprite = (function() {
-    function HeroSprite() {
-      this.x = 0;
-      this.y = 0;
-      this.vx = 0;
-      this.vy = 0;
-      this.status = STATUS_WALKING;
-    }
-
-    HeroSprite.prototype.tick = function() {
-      var top, x, xnext, xprev, y, _ref, _ref1, _ref2, _ref3, _ref4, _ref5, _ref6;
-
-      switch (this.status) {
-        case STATUS_WALKING:
-          xprev = pixToTile(this.x);
-          this.x += this.vx * deltaSeconds();
-          xnext = pixToTile(this.x);
-          if (xnext !== xprev) {
-            top = pixToTile(this.y);
-            if (this.vx > 0) {
-              if (!((_ref = world.getTile(xnext, top + 2)) != null ? _ref.isSolid() : void 0)) {
-                this.x = TILE_SIZE * xnext;
-                this.vy = 128;
-                return this.status = STATUS_FALLING;
-              } else if (((_ref1 = world.getTile(xnext + 1, top)) != null ? _ref1.isSolid() : void 0) || ((_ref2 = world.getTile(xnext + 1, top + 1)) != null ? _ref2.isSolid() : void 0)) {
-                this.vx = -this.vx;
-                return this.x = TILE_SIZE * xnext;
-              }
-            } else {
-              if (!((_ref3 = world.getTile(xnext + 1, top + 2)) != null ? _ref3.isSolid() : void 0)) {
-                this.x = TILE_SIZE * (xnext + 1);
-                this.vy = 128;
-                return this.status = STATUS_FALLING;
-              } else if (((_ref4 = world.getTile(xnext, top)) != null ? _ref4.isSolid() : void 0) || ((_ref5 = world.getTile(xnext, top + 1)) != null ? _ref5.isSolid() : void 0)) {
-                this.vx = -this.vx;
-                return this.x = TILE_SIZE * (xnext + 1);
-              }
-            }
-          }
-          break;
-        case STATUS_FALLING:
-          this.vy += 1024 * deltaSeconds();
-          this.y += this.vy * deltaSeconds();
-          x = pixToTile(this.x);
-          y = pixToTile(this.y) + 2;
-          if ((_ref6 = world.getTile(x, y)) != null ? _ref6.isSolid() : void 0) {
-            this.vy = 0;
-            this.y -= this.y % TILE_SIZE;
-            return this.status = STATUS_WALKING;
-          }
-      }
-    };
-
-    HeroSprite.prototype.draw = function() {
-      var frame, h, w;
-
-      frame = Math.floor(seconds() * 10) % 10;
-      w = images.walk.width;
-      h = images.walk.height / 10;
-      if (this.vx < 0) {
-        g.save();
-        g.translate(this.x - 6, this.y);
-        g.translate(w / 2, 0);
-        g.scale(-1, 1);
-        g.drawImage(images.walk, 0, frame * h, w, h, -w / 2, 0, w, h);
-        return g.restore();
-      } else {
-        return g.drawImage(images.walk, 0, frame * h, w, h, this.x - 6, this.y, w, h);
-      }
-    };
-
-    return HeroSprite;
-
-  })();
-
-  CupcakeSprite = (function() {
-    function CupcakeSprite() {
-      this.x = 0;
-      this.y = 0;
-    }
-
-    CupcakeSprite.prototype.draw = function() {
-      var frame, h, w;
-
-      frame = Math.floor(seconds() * 7.5) % 6;
-      w = images.cupcake.width;
-      h = images.cupcake.height / 6;
-      return g.drawImage(images.cupcake, 0, frame * h, w, h, this.x, this.y + 5, w, h);
-    };
-
-    return CupcakeSprite;
-
-  })();
-
   World = (function() {
     function World() {
-      var i;
+      var bodyDef, debugDraw, fixDef, i, _i;
 
-      this.offsetX = 0.5 * (canvas.width - TILE_SIZE * TILE_WIDTH) + 2;
-      this.offsetY = 0.5 * (canvas.height - TILE_SIZE * TILE_HEIGHT) + 20;
+      this.offsetX = 0.5 * (canvas.width - WORLD_WIDTH) + 2;
+      this.offsetY = 0.5 * (canvas.height - WORLD_HEIGHT) + 20;
       this.tiles = (function() {
         var _i, _ref, _results;
 
@@ -333,17 +307,56 @@
       })();
       this.hero = new HeroSprite;
       this.cupcake = new CupcakeSprite;
+      this.physics = new b2World(new Vec2(0, GRAVITY / PIXELS_PER_METER), false);
+      fixDef = new FixtureDef;
+      fixDef.density = 1.0;
+      fixDef.friction = 0.5;
+      fixDef.restitution = 0.2;
+      bodyDef = new BodyDef;
+      bodyDef.type = Body.b2_staticBody;
+      bodyDef.position.Set(TILE_WIDTH / 2, TILE_HEIGHT + 0.5);
+      fixDef.shape = new PolygonShape;
+      fixDef.shape.SetAsBox(TILE_WIDTH / 2 + 1, 0.5);
+      bodyDef.position.y = -0.5;
+      this.physics.CreateBody(bodyDef).CreateFixture(fixDef);
+      fixDef.shape = new PolygonShape;
+      fixDef.shape.SetAsBox(0.5, TILE_HEIGHT / 2);
+      bodyDef.position.Set(-0.5, TILE_HEIGHT / 2);
+      this.physics.CreateBody(bodyDef).CreateFixture(fixDef);
+      bodyDef.position.x = TILE_WIDTH + 0.5;
+      this.physics.CreateBody(bodyDef).CreateFixture(fixDef);
+      if (DEBUG_PHYSICS) {
+        debugDraw = new DebugDraw();
+        debugDraw.SetSprite(g);
+        debugDraw.SetDrawScale(PIXELS_PER_METER);
+        debugDraw.SetFillAlpha(0.5);
+        debugDraw.SetLineThickness(4.0);
+        debugDraw.SetFlags(DebugDraw.e_shapeBit | DebugDraw.e_jointBit);
+        this.physics.SetDebugDraw(debugDraw);
+      }
+      bodyDef.type = Body.b2_dynamicBody;
+      for (i = _i = 0; _i <= 9; i = ++_i) {
+        if (Math.random() > 0.5) {
+          fixDef.shape = new PolygonShape;
+          fixDef.shape.SetAsBox(randRange(0.1, 1), randRange(0.1, 1));
+        } else {
+          fixDef.shape = new CircleShape(randRange(0.1, 2));
+        }
+        bodyDef.position.Set(randRange(1, TILE_WIDTH - 1), randRange(1, 4));
+        this.physics.CreateBody(bodyDef).CreateFixture(fixDef);
+      }
     }
 
     World.prototype.tick = function() {
-      var tile;
+      var _ref;
 
+      this.physics.Step(deltaSeconds(), 10, 10);
       if (mouseDown) {
-        tile = this.tileUnder(mouseX, mouseY);
-        if (tile != null) {
-          tile.clear();
+        if ((_ref = this.tileUnder(mouseX, mouseY)) != null) {
+          _ref.erase();
         }
       }
+      this.cupcake.tick();
       return this.hero.tick();
     };
 
@@ -352,6 +365,9 @@
 
       g.save();
       g.translate(this.offsetX, this.offsetY);
+      if (DEBUG_PHYSICS) {
+        this.physics.DrawDebugData();
+      }
       _ref = this.tiles;
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         tile = _ref[_i];
@@ -379,24 +395,170 @@
   })();
 
   setupTest = function() {
-    var i, _i, _j, _k, _ref, _ref1;
+    var i, tile, _i, _j, _len, _ref, _ref1;
 
     for (i = _i = 0, _ref = TILE_WIDTH - 1; 0 <= _ref ? _i <= _ref : _i >= _ref; i = 0 <= _ref ? ++_i : --_i) {
-      world.getTile(i, 15).type = WALL;
+      world.getTile(i, 14).type = TILE_TYPE_SOLID;
+      world.getTile(i, 15).type = TILE_TYPE_DISTRACTION;
     }
-    for (i = _j = 0; _j <= 4; i = ++_j) {
-      world.getTile(i, 11).type = WALL;
-    }
-    for (i = _k = 0, _ref1 = TILE_HEIGHT - 1; 0 <= _ref1 ? _k <= _ref1 : _k >= _ref1; i = 0 <= _ref1 ? ++_k : --_k) {
-      world.getTile(0, i).type = WALL;
-      world.getTile(10, i).type = WALL;
+    _ref1 = world.tiles;
+    for (_j = 0, _len = _ref1.length; _j < _len; _j++) {
+      tile = _ref1[_j];
+      tile.initPhysics();
     }
     world.hero.x = 32;
-    world.hero.y = 9 * 32;
-    world.hero.vx = 128;
+    world.hero.y = 12 * 32;
+    world.hero.vx = 16;
     world.cupcake.x = 20 * 32;
-    return world.cupcake.y = 13 * 32;
+    return world.cupcake.y = 9 * 32;
   };
+
+  HERO_STATUS_WALKING = 0;
+
+  HERO_STATUS_FALLING = 1;
+
+  HeroSprite = (function() {
+    function HeroSprite() {
+      this.x = 0;
+      this.y = 0;
+      this.vx = 0;
+      this.vy = 0;
+      this.status = HERO_STATUS_WALKING;
+    }
+
+    HeroSprite.prototype.tick = function() {
+      switch (this.status) {
+        case HERO_STATUS_WALKING:
+          return this.tickWalking();
+        case HERO_STATUS_FALLING:
+          return this.tickFalling();
+      }
+    };
+
+    HeroSprite.prototype.tickWalking = function() {
+      var top, xnext, xprev, _ref, _ref1, _ref2, _ref3, _ref4, _ref5;
+
+      xprev = pixToTile(this.x);
+      this.x += this.vx * deltaSeconds();
+      xnext = pixToTile(this.x);
+      if (xnext !== xprev) {
+        top = pixToTile(this.y);
+        if (this.vx > 0) {
+          if (!((_ref = world.getTile(xnext, top + 2)) != null ? _ref.isSolid() : void 0)) {
+            this.x = TILE_SIZE * xnext;
+            this.vy = 128;
+            return this.status = HERO_STATUS_FALLING;
+          } else if (((_ref1 = world.getTile(xnext + 1, top)) != null ? _ref1.isSolid() : void 0) || ((_ref2 = world.getTile(xnext + 1, top + 1)) != null ? _ref2.isSolid() : void 0)) {
+            this.vx = -this.vx;
+            return this.x = TILE_SIZE * xnext;
+          }
+        } else {
+          if (!((_ref3 = world.getTile(xnext + 1, top + 2)) != null ? _ref3.isSolid() : void 0)) {
+            this.x = TILE_SIZE * (xnext + 1);
+            this.vy = 128;
+            return this.status = HERO_STATUS_FALLING;
+          } else if (((_ref4 = world.getTile(xnext, top)) != null ? _ref4.isSolid() : void 0) || ((_ref5 = world.getTile(xnext, top + 1)) != null ? _ref5.isSolid() : void 0)) {
+            this.vx = -this.vx;
+            return this.x = TILE_SIZE * (xnext + 1);
+          }
+        }
+      }
+    };
+
+    HeroSprite.prototype.tickFalling = function() {
+      var x, y, _ref;
+
+      this.vy += GRAVITY * deltaSeconds();
+      this.y += this.vy * deltaSeconds();
+      x = pixToTile(this.x);
+      y = pixToTile(this.y) + 2;
+      if ((_ref = world.getTile(x, y)) != null ? _ref.isSolid() : void 0) {
+        this.vy = 0;
+        this.y -= this.y % TILE_SIZE;
+        return this.status = HERO_STATUS_WALKING;
+      }
+    };
+
+    HeroSprite.prototype.draw = function() {
+      var frame, h, w;
+
+      frame = Math.floor(seconds() * 10) % 10;
+      w = images.walk.width;
+      h = images.walk.height / 10;
+      if (this.vx < 0) {
+        g.save();
+        g.translate(this.x - 6, this.y);
+        g.translate(w / 2, 0);
+        g.scale(-1, 1);
+        g.drawImage(images.walk, 0, frame * h, w, h, -w / 2, 0, w, h + 2);
+        return g.restore();
+      } else {
+        return g.drawImage(images.walk, 0, frame * h, w, h, this.x - 6, this.y, w, h + 2);
+      }
+    };
+
+    return HeroSprite;
+
+  })();
+
+  CUPCAKE_STATUS_IDLE = 0;
+
+  CUPCAKE_STATUS_FALLING = 1;
+
+  CupcakeSprite = (function() {
+    function CupcakeSprite() {
+      this.x = 0;
+      this.y = 0;
+      this.vy = 0;
+      this.status = CUPCAKE_STATUS_IDLE;
+    }
+
+    CupcakeSprite.prototype.draw = function() {
+      var frame, h, w;
+
+      frame = Math.floor(seconds() * 7.5) % 6;
+      w = images.cupcake.width;
+      h = images.cupcake.height / 6;
+      return g.drawImage(images.cupcake, 0, frame * h, w, h, this.x, this.y + 4, w, h);
+    };
+
+    CupcakeSprite.prototype.tick = function() {
+      switch (this.status) {
+        case CUPCAKE_STATUS_IDLE:
+          return this.tickIdle();
+        case CUPCAKE_STATUS_FALLING:
+          return this.tickFalling();
+      }
+    };
+
+    CupcakeSprite.prototype.tickIdle = function() {
+      var x, y, _ref, _ref1;
+
+      x = pixToTile(this.x);
+      y = pixToTile(this.y);
+      if (!(((_ref = world.getTile(x, y + 2)) != null ? _ref.isSolid() : void 0) || ((_ref1 = world.getTile(x + 1, y + 2)) != null ? _ref1.isSolid() : void 0))) {
+        this.vy = 128;
+        return this.status = CUPCAKE_STATUS_FALLING;
+      }
+    };
+
+    CupcakeSprite.prototype.tickFalling = function() {
+      var x, y, _ref, _ref1;
+
+      this.vy += GRAVITY * deltaSeconds();
+      this.y += this.vy * deltaSeconds();
+      x = pixToTile(this.x);
+      y = pixToTile(this.y);
+      if (((_ref = world.getTile(x, y + 2)) != null ? _ref.isSolid() : void 0) || ((_ref1 = world.getTile(x + 1, y + 2)) != null ? _ref1.isSolid() : void 0)) {
+        this.vy = 0;
+        this.y -= this.y % TILE_SIZE;
+        return this.status = CUPCAKE_STATUS_IDLE;
+      }
+    };
+
+    return CupcakeSprite;
+
+  })();
 
   $(function() {
     var doGameplay, doc;
@@ -413,6 +575,9 @@
       return mouseY = e.pageY - canvas.offsetTop;
     });
     doc.mousedown(function(e) {
+      if (e.which !== 1) {
+        return;
+      }
       mouseX = e.pageX - canvas.offsetLeft;
       mouseY = e.pageY - canvas.offsetTop;
       mouseDown = true;
@@ -422,6 +587,9 @@
       }
     });
     doc.mouseup(function(e) {
+      if (e.which !== 1) {
+        return;
+      }
       mouseX = e.pageX - canvas.offsetLeft;
       mouseY = e.pageY - canvas.offsetTop;
       mouseDown = false;
@@ -435,7 +603,7 @@
     world = new World;
     setupTest();
     doGameplay = function() {
-      drawBackground();
+      clearBackground();
       world.tick();
       world.draw();
       pencil.draw();

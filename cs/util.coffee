@@ -1,3 +1,4 @@
+
 `
 // http://paulirish.com/2011/requestanimationframe-for-smart-animating/
 // http://my.opera.com/emoller/blog/2011/12/20/requestanimationframe-for-smart-er-animating 
@@ -29,7 +30,6 @@
 }());
 `
 
-
 class ImageGroup
 	constructor: (paths) ->
 		stripName = (path) -> 
@@ -60,3 +60,16 @@ class ImageGroup
 	complete: -> @numLoading == 0 and @numFailed == 0
 	failed: -> @numFailed > 0
 
+randRange = (x,y) -> x + Math.random() * (y - x)
+
+# convenience names
+b2World = Box2D.Dynamics.b2World
+Vec2 = Box2D.Common.Math.b2Vec2
+BodyDef = Box2D.Dynamics.b2BodyDef
+Body = Box2D.Dynamics.b2Body
+FixtureDef = Box2D.Dynamics.b2FixtureDef
+Fixture = Box2D.Dynamics.b2Fixture
+MassData = Box2D.Collision.Shapes.b2MassData
+PolygonShape = Box2D.Collision.Shapes.b2PolygonShape
+CircleShape = Box2D.Collision.Shapes.b2CircleShape
+DebugDraw = Box2D.Dynamics.b2DebugDraw

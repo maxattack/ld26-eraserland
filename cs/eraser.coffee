@@ -1,4 +1,4 @@
-
+# entry-point function
 
 $ ->
 	# get canvas context
@@ -14,6 +14,7 @@ $ ->
 		mouseX = e.pageX - canvas.offsetLeft
 		mouseY = e.pageY - canvas.offsetTop
 	doc.mousedown (e) ->
+		return unless e.which == 1
 		mouseX = e.pageX - canvas.offsetLeft
 		mouseY = e.pageY - canvas.offsetTop
 		mouseDown = yes
@@ -21,6 +22,7 @@ $ ->
 		if mouseX >= 0 and mouseX < canvas.width and mouseY >= 0 and mouseY < canvas.height
 			e.preventDefault()
 	doc.mouseup (e) ->
+		return unless e.which == 1
 		mouseX = e.pageX - canvas.offsetLeft
 		mouseY = e.pageY - canvas.offsetTop
 		mouseDown = no
@@ -42,10 +44,10 @@ $ ->
 	setupTest()
 
 	doGameplay = ->
-		drawBackground()
+		clearBackground()
 
 		world.tick()
-		
+
 		world.draw()
 		pencil.draw()
 
