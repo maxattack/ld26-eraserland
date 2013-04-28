@@ -30,6 +30,9 @@ $ ->
 		if mouseX >= 0 and mouseX < canvas.width and mouseY >= 0 and mouseY < canvas.height
 			e.preventDefault()
 
+	if DEBUG_PHYSICS
+		doc.keydown (e) -> showPhysics = !showPhysics if e.which == 80
+
 	# start music?
 	# if (new Audio()).canPlayType('audio/ogg; codecs=vorbis') == 'probably'
 	# 	music = new Audio('audio/music.ogg')
@@ -38,19 +41,40 @@ $ ->
 
 	# init various globals
 	time = rawMillis()
-	pencil = new Pencil
-	world = new World
+	new Pencil
 
-	setupTest()
+	beginStartScreen = ->
+		new World(startScreen)
+		doStartScreen()
+
+	doStartScreen = ->
+		clearBackground()
+		clearBackground()
+		world.tick()
+
+		# determine if there are not solid tiles
+		anySolid = no
+		for tile in world.tiles
+			if tile.isSolid()
+				anySolid = yes
+				break
+
+		unless anySolid
+			beginGameplay()
+		else
+			world.draw()
+			pencil.draw()
+			queueFrame doStartScreen
+
+	beginGameplay = ->
+		new World(testLevel)
+		doGameplay()
 
 	doGameplay = ->
 		clearBackground()
-
 		world.tick()
-
 		world.draw()
 		pencil.draw()
-
 		queueFrame doGameplay
 
 	# wait for assets to load then GOOOOO
@@ -61,4 +85,5 @@ $ ->
 			else
 				queueFrame arguments.callee		
 		else
-			queueFrame doGameplay
+			#beginStartScreen()
+			beginGameplay()

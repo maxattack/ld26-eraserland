@@ -1,6 +1,7 @@
 
 class Pencil
 	constructor: ->
+		pencil = this
 		@rubTime = 0
 
 	draw: ->

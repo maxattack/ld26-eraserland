@@ -1,10 +1,6 @@
 
 TAU = Math.PI + Math.PI
 
-setMessage = (msg) ->
-	$('#logger').html(msg)
-
-
 canvas = null
 g = null
 mouseX = 0
@@ -25,10 +21,12 @@ images = new ImageGroup [
 	'images/walk.png'
 	'images/cupcake.png'
 	'images/test_baked.png'
+	'images/startScreen_baked.png'
 ]
 
 pencil = null
 world = null
+scratchManifold = new WorldManifold
 
 queueFrame = (state) ->
 	# tick time
@@ -60,9 +58,10 @@ TILE_TYPE_DISTRACTION = 2
 
 K = 1.0 / 32.0
 pixToTile = (x) -> Math.floor(K*x)
+tileId = (x,y) -> x + TILE_WIDTH * y
 
 PIXELS_PER_METER = 32
 
 DEBUG_PHYSICS = yes
-
+showPhysics = no
 

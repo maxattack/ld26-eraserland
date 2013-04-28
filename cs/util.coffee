@@ -73,3 +73,5 @@ MassData = Box2D.Collision.Shapes.b2MassData
 PolygonShape = Box2D.Collision.Shapes.b2PolygonShape
 CircleShape = Box2D.Collision.Shapes.b2CircleShape
 DebugDraw = Box2D.Dynamics.b2DebugDraw
+WorldManifold = Box2D.Collision.b2WorldManifold
+ContactListener = Box2D.Dynamics.b2ContactListener
