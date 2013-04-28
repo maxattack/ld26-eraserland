@@ -4,6 +4,7 @@ SCRIPTS = cs/util.coffee \
 	cs/world.coffee \
 	cs/world1.coffee \
 	cs/world2.coffee \
+	cs/world3.coffee \
 	cs/tile.coffee \
 	cs/hero.coffee \
 	cs/cupcake.coffee \

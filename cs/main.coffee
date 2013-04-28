@@ -70,14 +70,17 @@ $ ->
 
 	transition = 0
 	timeout = 0
-	totalLevels = 2
+	totalLevels = 3
 	currentLevel = 0
 
 	beginGameplay = ->
 		switch currentLevel
 			when 0 then new World1
 			when 1 then new World2
-			else world = null
+			when 2 then new World3
+			else
+				world.onDestroy() 
+				world = null
 		if world?
 			transition = 0
 			doGameplay()
@@ -171,5 +174,5 @@ $ ->
 				queueFrame arguments.callee		
 		else
 			# beginStartScreen()
-			currentLevel = 1
+			currentLevel = 2
 			beginGameplay()

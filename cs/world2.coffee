@@ -159,5 +159,5 @@ class World2 extends World
 
 
 	onDestroy: ->	
-		doc.off 'keydown.world2'
+		# doc.off 'keydown.world2'
 

@@ -30,7 +30,7 @@
 	}
 }());
 ;
-  var Body, BodyDef, CatSprite, CircleShape, ContactListener, CupcakeSprite, DEBUG_PHYSICS, DebugDraw, Fixture, FixtureDef, GRAVITY, HeroSprite, ImageGroup, K, MPP, MassData, PIXELS_PER_METER, Pencil, PolygonShape, STATUS_ACTIVE, STATUS_LOSE, STATUS_WIN, TAU, TILE_HEIGHT, TILE_SIZE, TILE_TYPE_DISTRACTION, TILE_TYPE_EMPTY, TILE_TYPE_SOLID, TILE_WIDTH, Tile, Vec2, WORLD_HEIGHT, WORLD_WIDTH, World, World1, World2, WorldManifold, b2World, canvas, clearBackground, createBox, deltaSeconds, doc, dt, firstLevel, g, images, mouseDown, mousePressed, mouseReleased, mouseX, mouseY, pencil, pixToTile, queueFrame, randRange, rawMillis, scratchManifold, secondLevel, seconds, setupPhysics, showPhysics, startScreen, tileId, time, world,
+  var Body, BodyDef, CatSprite, CircleShape, ContactListener, CupcakeSprite, DEBUG_PHYSICS, DebugDraw, Fixture, FixtureDef, GRAVITY, HeroSprite, ImageGroup, K, MPP, MassData, PIXELS_PER_METER, Pencil, PolygonShape, STATUS_ACTIVE, STATUS_LOSE, STATUS_WIN, TAU, TILE_HEIGHT, TILE_SIZE, TILE_TYPE_DISTRACTION, TILE_TYPE_EMPTY, TILE_TYPE_SOLID, TILE_WIDTH, Tile, Vec2, WORLD_HEIGHT, WORLD_WIDTH, World, World1, World2, World3, WorldManifold, b2World, canvas, clearBackground, createBox, deltaSeconds, doc, dt, firstLevel, g, images, mouseDown, mousePressed, mouseReleased, mouseX, mouseY, pencil, pixToTile, queueFrame, randRange, rawMillis, scratchManifold, secondLevel, seconds, setupPhysics, showPhysics, startScreen, thirdLevel, tileId, time, world,
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
@@ -616,11 +616,26 @@
       return _results;
     };
 
-    World2.prototype.onDestroy = function() {
-      return doc.off('keydown.world2');
-    };
+    World2.prototype.onDestroy = function() {};
 
     return World2;
+
+  })(World);
+
+  World3 = (function(_super) {
+    __extends(World3, _super);
+
+    function World3() {
+      World3.__super__.constructor.call(this, thirdLevel);
+    }
+
+    World3.prototype.onTick = function() {};
+
+    World3.prototype.onDraw = function() {};
+
+    World3.prototype.onDestroy = function() {};
+
+    return World3;
 
   })(World);
 
@@ -1148,6 +1163,10 @@
     ]
   };
 
+  thirdLevel = {
+    tilemap: images.secondBaked
+  };
+
   doc = null;
 
   $(function() {
@@ -1234,7 +1253,7 @@
     };
     transition = 0;
     timeout = 0;
-    totalLevels = 2;
+    totalLevels = 3;
     currentLevel = 0;
     beginGameplay = function() {
       switch (currentLevel) {
@@ -1244,7 +1263,11 @@
         case 1:
           new World2;
           break;
+        case 2:
+          new World3;
+          break;
         default:
+          world.onDestroy();
           world = null;
       }
       if (world != null) {
@@ -1343,7 +1366,7 @@
           return queueFrame(arguments.callee);
         }
       } else {
-        currentLevel = 1;
+        currentLevel = 2;
         return beginGameplay();
       }
     })();
