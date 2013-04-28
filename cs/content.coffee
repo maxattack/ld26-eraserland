@@ -1,14 +1,18 @@
 images = new ImageGroup [
 	'images/pencil.png'
 	'images/background.jpg'
+	'images/winScreen.png'
+	'images/loseScreen.png'
+
+	'images/startScreen_baked.png'
+
+	'images/first_baked.png'
+	'images/lose1.png'
 	'images/walk.png'
 	'images/cupcake.png'
-	'images/first_baked.png'
-	'images/startScreen_baked.png'
-	'images/loseScreen.png'
-	'images/winScreen.png'
-	'images/heart1.png'
+
 	'images/second_baked.png'
+	'images/lose2.png'
 	"images/cat_01.png"
 	"images/cat_02.png"
 	"images/cat_03.png"

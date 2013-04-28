@@ -834,7 +834,7 @@
 
   })();
 
-  images = new ImageGroup(['images/pencil.png', 'images/background.jpg', 'images/walk.png', 'images/cupcake.png', 'images/first_baked.png', 'images/startScreen_baked.png', 'images/loseScreen.png', 'images/winScreen.png', 'images/heart1.png', 'images/second_baked.png', "images/cat_01.png", "images/cat_02.png", "images/cat_03.png", "images/cat_04.png", "images/cat_05.png", "images/cat_06.png", "images/cat_07.png", "images/cat_08.png", "images/cat_09.png", "images/cat_10.png", "images/cat_11.png", "images/cat_12.png", "images/cat_13.png", "images/cat_14.png", "images/cat_15.png", "images/cat_16.png", "images/cat_17.png", "images/cat_18.png"]);
+  images = new ImageGroup(['images/pencil.png', 'images/background.jpg', 'images/winScreen.png', 'images/loseScreen.png', 'images/startScreen_baked.png', 'images/first_baked.png', 'images/lose1.png', 'images/walk.png', 'images/cupcake.png', 'images/second_baked.png', 'images/lose2.png', "images/cat_01.png", "images/cat_02.png", "images/cat_03.png", "images/cat_04.png", "images/cat_05.png", "images/cat_06.png", "images/cat_07.png", "images/cat_08.png", "images/cat_09.png", "images/cat_10.png", "images/cat_11.png", "images/cat_12.png", "images/cat_13.png", "images/cat_14.png", "images/cat_15.png", "images/cat_16.png", "images/cat_17.png", "images/cat_18.png"]);
 
   startScreen = {
     tilemap: images.startScreenBaked,
@@ -1279,7 +1279,7 @@
       return queueFrame(doLoseScreenIn);
     };
     doLoseScreenIn = function() {
-      var duration, u;
+      var duration, hint, hintt, u;
 
       duration = 4;
       transition += 0.1 * (1.0 - transition);
@@ -1293,6 +1293,13 @@
       g.globalAlpha = 1;
       g.drawImage(images.loseScreen, 0.5 * (canvas.width - images.loseScreen.width), 175 * transition);
       pencil.draw();
+      if (transition >= 0.8) {
+        hint = images["lose" + (currentLevel + 1)];
+        if (hint != null) {
+          hintt = 5 * (transition - 0.8);
+          g.drawImage(hint, 0.5 * (canvas.width - hint.width), 500 - 50 * hintt * hintt);
+        }
+      }
       timeout += deltaSeconds();
       if (timeout > duration) {
         return beginGameplay();

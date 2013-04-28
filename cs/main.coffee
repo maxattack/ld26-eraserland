@@ -118,6 +118,16 @@ $ ->
 		)
 		pencil.draw()
 
+		if transition >= 0.8
+			hint = images["lose#{currentLevel+1}"]
+			if hint?
+				hintt = 5*(transition-0.8)
+				g.drawImage(
+					hint
+					0.5 * (canvas.width - hint.width),
+					500 - 50 * hintt * hintt
+				)
+
 		timeout += deltaSeconds()
 		if timeout > duration
 			beginGameplay()
