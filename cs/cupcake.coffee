@@ -17,6 +17,11 @@ class CupcakeSprite
 		@body.CreateFixture(fixDef)
 		@body.SetUserData(this)
 
+	outOfBounds: ->
+		p = @body.GetPosition()
+		p.x < -1 or p.x > TILE_WIDTH+1 or p.y > TILE_HEIGHT+2
+		
+
 	draw: ->
 		frame = Math.floor(seconds() * 7.5) % 6
 		w = images.cupcake.width

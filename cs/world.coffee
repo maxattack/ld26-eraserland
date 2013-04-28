@@ -35,11 +35,15 @@ class World
 			@physics.SetContactListener(listener)
 
 	tick: ->
+		return unless @status == STATUS_ACTIVE
 		@physics.Step(deltaSeconds(), 10, 10)
 		if @status == STATUS_ACTIVE
 			@tileUnder(mouseX, mouseY)?.erase() if mouseDown
 			@cupcake?.tick()
 			@hero?.tick()
+			if @cupcake?.outOfBounds() or @hero?.outOfBounds()
+				@status = STATUS_LOSE
+
 
 	draw: ->
 		g.save()

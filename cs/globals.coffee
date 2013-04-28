@@ -20,8 +20,11 @@ images = new ImageGroup [
 	'images/background.jpg'
 	'images/walk.png'
 	'images/cupcake.png'
-	'images/test_baked.png'
+	'images/first_baked.png'
 	'images/startScreen_baked.png'
+	'images/loseScreen.png'
+	'images/winScreen.png'
+	'images/heart1.png'
 ]
 
 pencil = null

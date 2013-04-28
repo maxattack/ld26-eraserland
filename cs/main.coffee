@@ -44,7 +44,7 @@ $ ->
 	new Pencil
 
 	beginStartScreen = ->
-		new World(startScreen)
+		new World startScreen
 		doStartScreen()
 
 	doStartScreen = ->
@@ -66,18 +66,74 @@ $ ->
 			pencil.draw()
 			queueFrame doStartScreen
 
+	transition = 0
+	timeout = 0
+
 	beginGameplay = ->
-		new World(testLevel)
+		new World firstLevel
+		transition = 0
 		doGameplay()
 
 	doGameplay = ->
 		clearBackground()
 		world.tick()
+		transition += 0.1 * (1.0 - transition)
+		g.globalAlpha = transition if transition < 0.99
 		world.draw()
+		g.globalAlpha = 1 if transition < 0.99
 		pencil.draw()
-		queueFrame doGameplay
+		switch world.status
+			when STATUS_LOSE then beginLose()
+			when STATUS_WIN then beginWin()
+			else queueFrame doGameplay
 
-	# wait for assets to load then GOOOOO
+	beginLose = ->
+		transition = 0
+		timeout = 0
+		queueFrame doLoseScreenIn
+
+	doLoseScreenIn = ->
+		duration = 4
+		transition += 0.1 * (1.0 - transition)
+		clearBackground()
+		u = timeout/(0.25*duration)
+		u = 1 if u > 1
+		g.globalAlpha = (1-u)*(1-u)
+		world.draw()
+		g.globalAlpha = 1
+
+		g.drawImage(
+			images.loseScreen,
+			0.5 * (canvas.width - images.loseScreen.width),
+			175 * transition
+		)
+		pencil.draw()
+
+		timeout += deltaSeconds()
+		if timeout > duration
+			beginGameplay()
+		else
+			queueFrame doLoseScreenIn
+
+	beginWin = ->
+		transition = 0
+		timeout = 0
+		queueFrame doWinScreenIn
+
+	doWinScreenIn = ->
+		transition += 0.1 * (1.0 - transition)
+		clearBackground()
+		world.draw()
+		g.drawImage(images.heart1, canvas.width-200, canvas.height - 200)
+		g.drawImage(
+			images.winScreen,
+			0.5 * (canvas.width - images.winScreen.width),
+			125 * transition
+		)
+		pencil.draw()
+		queueFrame doWinScreenIn
+
+
 	do ->
 		if images.loading()
 			if images.failed()
@@ -85,5 +141,5 @@ $ ->
 			else
 				queueFrame arguments.callee		
 		else
-			#beginStartScreen()
+			# beginStartScreen()
 			beginGameplay()

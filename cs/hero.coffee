@@ -32,6 +32,9 @@ class HeroSprite
 
 		@body.SetUserData(this)
 
+	outOfBounds: ->
+		p = @body.GetPosition()
+		p.x < -1 or p.x > TILE_WIDTH+1 or p.y > TILE_HEIGHT+2
 
 	draw: ->
 		p = @body.GetPosition()

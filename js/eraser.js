@@ -30,7 +30,7 @@
 	}
 }());
 ;
-  var Body, BodyDef, CircleShape, ContactListener, CupcakeSprite, DEBUG_PHYSICS, DebugDraw, Fixture, FixtureDef, GRAVITY, HERO_STATUS_FALLING, HERO_STATUS_WALKING, HeroSprite, ImageGroup, K, MassData, PIXELS_PER_METER, Pencil, PolygonShape, STATUS_ACTIVE, STATUS_LOSE, STATUS_WIN, TAU, TILE_HEIGHT, TILE_SIZE, TILE_TYPE_DISTRACTION, TILE_TYPE_EMPTY, TILE_TYPE_SOLID, TILE_WIDTH, Tile, Vec2, WORLD_HEIGHT, WORLD_WIDTH, World, WorldManifold, b2World, canvas, clearBackground, deltaSeconds, dt, g, images, mouseDown, mousePressed, mouseReleased, mouseX, mouseY, pencil, pixToTile, queueFrame, randRange, rawMillis, scratchManifold, seconds, setupPhysics, showPhysics, startScreen, testLevel, tileId, time, world;
+  var Body, BodyDef, CircleShape, ContactListener, CupcakeSprite, DEBUG_PHYSICS, DebugDraw, Fixture, FixtureDef, GRAVITY, HERO_STATUS_FALLING, HERO_STATUS_WALKING, HeroSprite, ImageGroup, K, MassData, PIXELS_PER_METER, Pencil, PolygonShape, STATUS_ACTIVE, STATUS_LOSE, STATUS_WIN, TAU, TILE_HEIGHT, TILE_SIZE, TILE_TYPE_DISTRACTION, TILE_TYPE_EMPTY, TILE_TYPE_SOLID, TILE_WIDTH, Tile, Vec2, WORLD_HEIGHT, WORLD_WIDTH, World, WorldManifold, b2World, canvas, clearBackground, deltaSeconds, dt, firstLevel, g, images, mouseDown, mousePressed, mouseReleased, mouseX, mouseY, pencil, pixToTile, queueFrame, randRange, rawMillis, scratchManifold, seconds, setupPhysics, showPhysics, startScreen, tileId, time, world;
 
   ImageGroup = (function() {
     function ImageGroup(paths) {
@@ -149,7 +149,7 @@
     return 0.001 * dt;
   };
 
-  images = new ImageGroup(['images/pencil.png', 'images/background.jpg', 'images/walk.png', 'images/cupcake.png', 'images/test_baked.png', 'images/startScreen_baked.png']);
+  images = new ImageGroup(['images/pencil.png', 'images/background.jpg', 'images/walk.png', 'images/cupcake.png', 'images/first_baked.png', 'images/startScreen_baked.png', 'images/loseScreen.png', 'images/winScreen.png', 'images/heart1.png']);
 
   pencil = null;
 
@@ -301,8 +301,11 @@
     }
 
     World.prototype.tick = function() {
-      var _ref, _ref1, _ref2;
+      var _ref, _ref1, _ref2, _ref3, _ref4;
 
+      if (this.status !== STATUS_ACTIVE) {
+        return;
+      }
       this.physics.Step(deltaSeconds(), 10, 10);
       if (this.status === STATUS_ACTIVE) {
         if (mouseDown) {
@@ -313,7 +316,12 @@
         if ((_ref1 = this.cupcake) != null) {
           _ref1.tick();
         }
-        return (_ref2 = this.hero) != null ? _ref2.tick() : void 0;
+        if ((_ref2 = this.hero) != null) {
+          _ref2.tick();
+        }
+        if (((_ref3 = this.cupcake) != null ? _ref3.outOfBounds() : void 0) || ((_ref4 = this.hero) != null ? _ref4.outOfBounds() : void 0)) {
+          return this.status = STATUS_LOSE;
+        }
       }
     };
 
@@ -486,6 +494,13 @@
       this.body.SetUserData(this);
     }
 
+    HeroSprite.prototype.outOfBounds = function() {
+      var p;
+
+      p = this.body.GetPosition();
+      return p.x < -1 || p.x > TILE_WIDTH + 1 || p.y > TILE_HEIGHT + 2;
+    };
+
     HeroSprite.prototype.draw = function() {
       var frame, h, p, w, x, y;
 
@@ -565,6 +580,13 @@
       this.body.SetUserData(this);
     }
 
+    CupcakeSprite.prototype.outOfBounds = function() {
+      var p;
+
+      p = this.body.GetPosition();
+      return p.x < -1 || p.x > TILE_WIDTH + 1 || p.y > TILE_HEIGHT + 2;
+    };
+
     CupcakeSprite.prototype.draw = function() {
       var frame, h, p, w, x, y;
 
@@ -588,11 +610,11 @@
     solidTiles: [tileId(11, 8), tileId(12, 8), tileId(13, 8), tileId(14, 8), tileId(11, 9), tileId(12, 9), tileId(13, 9), tileId(14, 9), tileId(11, 10), tileId(12, 10), tileId(13, 10), tileId(14, 10), tileId(11, 11), tileId(12, 11), tileId(13, 11), tileId(14, 11)]
   };
 
-  testLevel = (function() {
+  firstLevel = (function() {
     var i, options;
 
     options = {
-      tilemap: images.testBaked,
+      tilemap: images.firstBaked,
       solidTiles: (function() {
         var _i, _ref, _results;
 
@@ -626,7 +648,7 @@
   })();
 
   $(function() {
-    var beginGameplay, beginStartScreen, doGameplay, doStartScreen, doc;
+    var beginGameplay, beginLose, beginStartScreen, beginWin, doGameplay, doLoseScreenIn, doStartScreen, doWinScreenIn, doc, timeout, transition;
 
     canvas = $('canvas')[0];
     if ((canvas != null ? canvas.getContext : void 0) == null) {
@@ -699,16 +721,74 @@
         return queueFrame(doStartScreen);
       }
     };
+    transition = 0;
+    timeout = 0;
     beginGameplay = function() {
-      new World(testLevel);
+      new World(firstLevel);
+      transition = 0;
       return doGameplay();
     };
     doGameplay = function() {
       clearBackground();
       world.tick();
+      transition += 0.1 * (1.0 - transition);
+      if (transition < 0.99) {
+        g.globalAlpha = transition;
+      }
       world.draw();
+      if (transition < 0.99) {
+        g.globalAlpha = 1;
+      }
       pencil.draw();
-      return queueFrame(doGameplay);
+      switch (world.status) {
+        case STATUS_LOSE:
+          return beginLose();
+        case STATUS_WIN:
+          return beginWin();
+        default:
+          return queueFrame(doGameplay);
+      }
+    };
+    beginLose = function() {
+      transition = 0;
+      timeout = 0;
+      return queueFrame(doLoseScreenIn);
+    };
+    doLoseScreenIn = function() {
+      var duration, u;
+
+      duration = 4;
+      transition += 0.1 * (1.0 - transition);
+      clearBackground();
+      u = timeout / (0.25 * duration);
+      if (u > 1) {
+        u = 1;
+      }
+      g.globalAlpha = (1 - u) * (1 - u);
+      world.draw();
+      g.globalAlpha = 1;
+      g.drawImage(images.loseScreen, 0.5 * (canvas.width - images.loseScreen.width), 175 * transition);
+      pencil.draw();
+      timeout += deltaSeconds();
+      if (timeout > duration) {
+        return beginGameplay();
+      } else {
+        return queueFrame(doLoseScreenIn);
+      }
+    };
+    beginWin = function() {
+      transition = 0;
+      timeout = 0;
+      return queueFrame(doWinScreenIn);
+    };
+    doWinScreenIn = function() {
+      transition += 0.1 * (1.0 - transition);
+      clearBackground();
+      world.draw();
+      g.drawImage(images.heart1, canvas.width - 200, canvas.height - 200);
+      g.drawImage(images.winScreen, 0.5 * (canvas.width - images.winScreen.width), 125 * transition);
+      pencil.draw();
+      return queueFrame(doWinScreenIn);
     };
     return (function() {
       if (images.loading()) {

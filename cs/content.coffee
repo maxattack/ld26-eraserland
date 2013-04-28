@@ -9,9 +9,9 @@ startScreen =
 	]
 
 
-testLevel = do ->
+firstLevel = do ->
 	options = 
-		tilemap: images.testBaked
+		tilemap: images.firstBaked
 		solidTiles: (tileId(i,14) for i in [0..TILE_WIDTH-1])
 		distractionTiles: (tileId(i, 15) for i in [0..TILE_WIDTH-1])
 		hero:
