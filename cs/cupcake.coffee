@@ -20,7 +20,7 @@ class CupcakeSprite
 	outOfBounds: ->
 		p = @body.GetPosition()
 		p.x < -1 or p.x > TILE_WIDTH+1 or p.y > TILE_HEIGHT+2
-		
+
 
 	draw: ->
 		frame = Math.floor(seconds() * 7.5) % 6
@@ -32,3 +32,4 @@ class CupcakeSprite
 		g.drawImage(images.cupcake, 0, frame * h, w, h, x, y, w, h)
 
 	tick: ->
+

@@ -1,3 +1,4 @@
+pencil = null
 
 class Pencil
 	constructor: ->

@@ -70,7 +70,7 @@ $ ->
 	timeout = 0
 
 	beginGameplay = ->
-		new World firstLevel
+		new World2
 		transition = 0
 		doGameplay()
 

@@ -1,7 +1,4 @@
 
-HERO_STATUS_WALKING = 0
-HERO_STATUS_FALLING = 1
-
 class HeroSprite
 	constructor: (options) ->
 		{ @walkingSpeed } = options
@@ -15,7 +12,6 @@ class HeroSprite
 
 		# give the hero rounded feet so that he doesn't catch
 		# corners in the tiles - age old box2D problem -__-;;
-
 		fixDef = new FixtureDef
 		fixDef.density = 1
 		fixDef.friction = 0.5

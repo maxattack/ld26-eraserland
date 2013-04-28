@@ -30,7 +30,9 @@
 	}
 }());
 ;
-  var Body, BodyDef, CircleShape, ContactListener, CupcakeSprite, DEBUG_PHYSICS, DebugDraw, Fixture, FixtureDef, GRAVITY, HERO_STATUS_FALLING, HERO_STATUS_WALKING, HeroSprite, ImageGroup, K, MassData, PIXELS_PER_METER, Pencil, PolygonShape, STATUS_ACTIVE, STATUS_LOSE, STATUS_WIN, TAU, TILE_HEIGHT, TILE_SIZE, TILE_TYPE_DISTRACTION, TILE_TYPE_EMPTY, TILE_TYPE_SOLID, TILE_WIDTH, Tile, Vec2, WORLD_HEIGHT, WORLD_WIDTH, World, WorldManifold, b2World, canvas, clearBackground, deltaSeconds, dt, firstLevel, g, images, mouseDown, mousePressed, mouseReleased, mouseX, mouseY, pencil, pixToTile, queueFrame, randRange, rawMillis, scratchManifold, seconds, setupPhysics, showPhysics, startScreen, tileId, time, world;
+  var Body, BodyDef, CatSprite, CircleShape, ContactListener, CupcakeSprite, DEBUG_PHYSICS, DebugDraw, Fixture, FixtureDef, GRAVITY, HeroSprite, ImageGroup, K, MPP, MassData, PIXELS_PER_METER, Pencil, PolygonShape, STATUS_ACTIVE, STATUS_LOSE, STATUS_WIN, TAU, TILE_HEIGHT, TILE_SIZE, TILE_TYPE_DISTRACTION, TILE_TYPE_EMPTY, TILE_TYPE_SOLID, TILE_WIDTH, Tile, Vec2, WORLD_HEIGHT, WORLD_WIDTH, World, World1, World2, WorldManifold, b2World, canvas, clearBackground, deltaSeconds, dt, firstLevel, g, i, images, mouseDown, mousePressed, mouseReleased, mouseX, mouseY, pencil, pixToTile, queueFrame, randRange, rawMillis, scratchManifold, secondLevel, seconds, setupPhysics, showPhysics, startScreen, tileId, time, world,
+    __hasProp = {}.hasOwnProperty,
+    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
   ImageGroup = (function() {
     function ImageGroup(paths) {
@@ -149,12 +151,6 @@
     return 0.001 * dt;
   };
 
-  images = new ImageGroup(['images/pencil.png', 'images/background.jpg', 'images/walk.png', 'images/cupcake.png', 'images/first_baked.png', 'images/startScreen_baked.png', 'images/loseScreen.png', 'images/winScreen.png', 'images/heart1.png']);
-
-  pencil = null;
-
-  world = null;
-
   scratchManifold = new WorldManifold;
 
   queueFrame = function(state) {
@@ -204,6 +200,8 @@
 
   showPhysics = false;
 
+  pencil = null;
+
   Pencil = (function() {
     function Pencil() {
       pencil = this;
@@ -237,6 +235,8 @@
 
   })();
 
+  world = null;
+
   STATUS_ACTIVE = 0;
 
   STATUS_WIN = 1;
@@ -245,8 +245,7 @@
 
   World = (function() {
     function World(options) {
-      var i, listener, _i, _j, _len, _len1, _ref, _ref1,
-        _this = this;
+      var i, _i, _j, _len, _len1, _ref, _ref1;
 
       world = this;
       this.tilemap = options.tilemap;
@@ -276,32 +275,15 @@
           this.tiles[i].setDistracting();
         }
       }
-      if (options.hero !== void 0) {
-        this.hero = new HeroSprite(options.hero);
-      }
-      if (options.cupcake !== void 0) {
-        this.cupcake = new CupcakeSprite(options.cupcake);
-      }
       this.status = STATUS_ACTIVE;
-      if ((this.hero != null) && (this.cupcake != null)) {
-        listener = new ContactListener;
-        listener.BeginContact = function(contact) {
-          if (contact.GetFixtureA().GetBody().GetUserData() === _this.hero) {
-            if (contact.GetFixtureB().GetBody().GetUserData() === _this.cupcake) {
-              return _this.status = STATUS_WIN;
-            }
-          } else if (contact.GetFixtureB().GetBody().GetUserData() === _this.hero) {
-            if (contact.GetFixtureA().GetBody().GetUserData() === _this.cupcake) {
-              return _this.status = STATUS_WIN;
-            }
-          }
-        };
-        this.physics.SetContactListener(listener);
-      }
     }
 
+    World.prototype.onTick = function() {};
+
+    World.prototype.onDraw = function() {};
+
     World.prototype.tick = function() {
-      var _ref, _ref1, _ref2, _ref3, _ref4;
+      var _ref;
 
       if (this.status !== STATUS_ACTIVE) {
         return;
@@ -313,20 +295,12 @@
             _ref.erase();
           }
         }
-        if ((_ref1 = this.cupcake) != null) {
-          _ref1.tick();
-        }
-        if ((_ref2 = this.hero) != null) {
-          _ref2.tick();
-        }
-        if (((_ref3 = this.cupcake) != null ? _ref3.outOfBounds() : void 0) || ((_ref4 = this.hero) != null ? _ref4.outOfBounds() : void 0)) {
-          return this.status = STATUS_LOSE;
-        }
+        return this.onTick();
       }
     };
 
     World.prototype.draw = function() {
-      var tile, _i, _len, _ref, _ref1, _ref2;
+      var tile, _i, _len, _ref;
 
       g.save();
       g.translate(this.offsetX, this.offsetY);
@@ -338,12 +312,7 @@
         tile = _ref[_i];
         tile.draw();
       }
-      if ((_ref1 = this.cupcake) != null) {
-        _ref1.draw();
-      }
-      if ((_ref2 = this.hero) != null) {
-        _ref2.draw();
-      }
+      this.onDraw();
       return g.restore();
     };
 
@@ -395,6 +364,141 @@
     }
     return physics;
   };
+
+  World1 = (function(_super) {
+    __extends(World1, _super);
+
+    function World1() {
+      var listener,
+        _this = this;
+
+      World1.__super__.constructor.call(this, firstLevel);
+      this.hero = new HeroSprite(options.hero);
+      this.cupcake = new CupcakeSprite(options.cupcake);
+      listener = new ContactListener;
+      listener.BeginContact = function(contact) {
+        if (contact.GetFixtureA().GetBody().GetUserData() === _this.hero) {
+          if (contact.GetFixtureB().GetBody().GetUserData() === _this.cupcake) {
+            return _this.status = STATUS_WIN;
+          }
+        } else if (contact.GetFixtureB().GetBody().GetUserData() === _this.hero) {
+          if (contact.GetFixtureA().GetBody().GetUserData() === _this.cupcake) {
+            return _this.status = STATUS_WIN;
+          }
+        }
+      };
+      this.physics.SetContactListener(listener);
+    }
+
+    World1.prototype.onTick = function() {
+      this.cupcake.tick();
+      this.hero.tick();
+      if (this.cupcake.outOfBounds() || this.hero.outOfBounds()) {
+        return this.status = STATUS_LOSE;
+      }
+    };
+
+    World1.prototype.onDraw = function() {
+      this.cupcake.draw();
+      return this.hero.draw();
+    };
+
+    return World1;
+
+  })(World);
+
+  MPP = 1.0 / PIXELS_PER_METER;
+
+  CatSprite = (function() {
+    function CatSprite(i, shapes) {
+      var bodyDef, dx, dy, fixDef, shape, vert, _i, _j, _len, _len1, _ref;
+
+      i += 1;
+      this.image = i >= 10 ? images['cat' + i] : images['cat0' + i];
+      bodyDef = new BodyDef;
+      bodyDef.type = Body.b2_dynamicBody;
+      bodyDef.position.Set(randRange(1, TILE_WIDTH - 1), randRange(2, TILE_HEIGHT - 4));
+      bodyDef.linearVelocity.Set(randRange(-0.5, 0.5), randRange(-10, -20));
+      this.body = world.physics.CreateBody(bodyDef);
+      fixDef = new FixtureDef;
+      fixDef.density = 1;
+      fixDef.friction = 0.5;
+      fixDef.restitution = 0.2;
+      for (_i = 0, _len = shapes.length; _i < _len; _i++) {
+        shape = shapes[_i];
+        if ('r' in shape) {
+          fixDef.shape = new CircleShape(MPP * shape.r);
+          fixDef.shape.SetLocalPosition(Vec2.Make(MPP * shape.x, MPP * shape.y));
+          this.body.CreateFixture(fixDef);
+        } else {
+          fixDef.shape = new PolygonShape;
+          fixDef.shape.SetAsBox(0.5 * MPP * shape.w, 0.5 * MPP * shape.h);
+          dx = MPP * shape.x - (-0.5 * MPP * shape.w);
+          dy = MPP * shape.y - (-0.5 * MPP * shape.h);
+          _ref = fixDef.shape.GetVertices();
+          for (_j = 0, _len1 = _ref.length; _j < _len1; _j++) {
+            vert = _ref[_j];
+            vert.x += dx;
+            vert.y += dy;
+          }
+          this.body.CreateFixture(fixDef);
+        }
+      }
+      console.log(this.image);
+    }
+
+    CatSprite.prototype.draw = function() {
+      var p;
+
+      p = this.body.GetPosition();
+      g.save();
+      g.translate(32 * p.x, 32 * p.y);
+      g.rotate(this.body.GetAngle());
+      g.drawImage(this.image, 0, 0);
+      return g.restore();
+    };
+
+    return CatSprite;
+
+  })();
+
+  World2 = (function(_super) {
+    __extends(World2, _super);
+
+    function World2() {
+      var i, shapes;
+
+      World2.__super__.constructor.call(this, secondLevel);
+      this.cats = (function() {
+        var _i, _len, _ref, _results;
+
+        _ref = secondLevel.cats;
+        _results = [];
+        for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
+          shapes = _ref[i];
+          _results.push(new CatSprite(i, shapes));
+        }
+        return _results;
+      })();
+    }
+
+    World2.prototype.onTick = function() {};
+
+    World2.prototype.onDraw = function() {
+      var cat, _i, _len, _ref, _results;
+
+      _ref = this.cats;
+      _results = [];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        cat = _ref[_i];
+        _results.push(cat.draw());
+      }
+      return _results;
+    };
+
+    return World2;
+
+  })(World);
 
   Tile = (function() {
     function Tile(i) {
@@ -460,10 +564,6 @@
     return Tile;
 
   })();
-
-  HERO_STATUS_WALKING = 0;
-
-  HERO_STATUS_FALLING = 1;
 
   HeroSprite = (function() {
     function HeroSprite(options) {
@@ -605,6 +705,8 @@
 
   })();
 
+  images = new ImageGroup(['images/pencil.png', 'images/background.jpg', 'images/walk.png', 'images/cupcake.png', 'images/first_baked.png', 'images/startScreen_baked.png', 'images/loseScreen.png', 'images/winScreen.png', 'images/heart1.png', 'images/second_baked.png', "images/cat_01.png", "images/cat_02.png", "images/cat_03.png", "images/cat_04.png", "images/cat_05.png", "images/cat_06.png", "images/cat_07.png", "images/cat_08.png", "images/cat_09.png", "images/cat_10.png", "images/cat_11.png", "images/cat_12.png", "images/cat_13.png", "images/cat_14.png", "images/cat_15.png", "images/cat_16.png", "images/cat_17.png", "images/cat_18.png"]);
+
   startScreen = {
     tilemap: images.startScreenBaked,
     solidTiles: [tileId(11, 8), tileId(12, 8), tileId(13, 8), tileId(14, 8), tileId(11, 9), tileId(12, 9), tileId(13, 9), tileId(14, 9), tileId(11, 10), tileId(12, 10), tileId(13, 10), tileId(14, 10), tileId(11, 11), tileId(12, 11), tileId(13, 11), tileId(14, 11)]
@@ -646,6 +748,202 @@
     options.solidTiles.push(tileId(12, 10), tileId(12, 11), tileId(12, 12), tileId(12, 13), tileId(13, 10), tileId(13, 11));
     return options;
   })();
+
+  secondLevel = {
+    tilemap: images.secondBaked,
+    solidTiles: (function() {
+      var _i, _ref, _results;
+
+      _results = [];
+      for (i = _i = 0, _ref = TILE_WIDTH - 1; 0 <= _ref ? _i <= _ref : _i >= _ref; i = 0 <= _ref ? ++_i : --_i) {
+        _results.push(tileId(i, 15));
+      }
+      return _results;
+    })(),
+    distractionTiles: (function() {
+      var _i, _ref, _results;
+
+      _results = [];
+      for (i = _i = 0, _ref = TILE_WIDTH - 1; 0 <= _ref ? _i <= _ref : _i >= _ref; i = 0 <= _ref ? ++_i : --_i) {
+        _results.push(tileId(i, 14));
+      }
+      return _results;
+    })(),
+    cats: [
+      [
+        {
+          r: 18,
+          x: 30,
+          y: 28
+        }, {
+          x: 12,
+          y: 32,
+          w: 58,
+          h: 32
+        }
+      ], [
+        {
+          r: 37,
+          x: 90,
+          y: 40
+        }, {
+          x: 49,
+          y: 59,
+          r: 20
+        }
+      ], [
+        {
+          x: 26,
+          y: 4,
+          w: 41,
+          h: 91
+        }
+      ], [
+        {
+          x: 43,
+          y: 34,
+          r: 31
+        }
+      ], [
+        {
+          x: 7,
+          y: 1,
+          w: 51,
+          h: 154
+        }
+      ], [
+        {
+          x: 50,
+          y: 46,
+          r: 28
+        }, {
+          x: 54,
+          y: 98,
+          r: 32
+        }
+      ], [
+        {
+          x: 4,
+          y: 7,
+          w: 88,
+          h: 49
+        }
+      ], [
+        {
+          x: 35,
+          y: 36,
+          r: 26
+        }
+      ], [
+        {
+          x: 53,
+          y: 49,
+          r: 44
+        }
+      ], [
+        {
+          x: 53,
+          y: 71,
+          r: 32
+        }, {
+          x: 29,
+          y: 46,
+          r: 16
+        }
+      ], [
+        {
+          x: 21,
+          y: 32,
+          w: 89,
+          h: 60
+        }
+      ], [
+        {
+          x: 7,
+          y: 26,
+          w: 51,
+          h: 36
+        }, {
+          x: 27,
+          y: 23,
+          r: 17
+        }
+      ], [
+        {
+          x: 55,
+          y: 32,
+          r: 30
+        }, {
+          x: 24,
+          y: 27,
+          r: 18
+        }, {
+          x: 17,
+          y: 44,
+          r: 7
+        }
+      ], [
+        {
+          x: 14,
+          y: 38,
+          w: 43,
+          h: 113
+        }, {
+          x: 34,
+          y: 40,
+          w: 13,
+          h: 33
+        }, {
+          x: 57,
+          y: 45,
+          r: 17
+        }
+      ], [
+        {
+          x: 4,
+          y: 12,
+          w: 58,
+          h: 44
+        }, {
+          x: 13,
+          y: 4,
+          w: 42,
+          h: 11
+        }
+      ], [
+        {
+          x: 45,
+          y: 35,
+          r: 25
+        }, {
+          x: 45,
+          y: 86,
+          r: 23
+        }
+      ], [
+        {
+          x: 53,
+          y: 33,
+          r: 27
+        }, {
+          x: 6,
+          y: 35,
+          w: 34,
+          h: 60
+        }
+      ], [
+        {
+          x: 36,
+          y: 39,
+          r: 22
+        }, {
+          x: 34,
+          y: 78,
+          r: 27
+        }
+      ]
+    ]
+  };
 
   $(function() {
     var beginGameplay, beginLose, beginStartScreen, beginWin, doGameplay, doLoseScreenIn, doStartScreen, doWinScreenIn, doc, timeout, transition;
@@ -724,7 +1022,7 @@
     transition = 0;
     timeout = 0;
     beginGameplay = function() {
-      new World(firstLevel);
+      new World2;
       transition = 0;
       return doGameplay();
     };

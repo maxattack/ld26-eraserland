@@ -2,6 +2,8 @@ SCRIPTS = cs/util.coffee \
 	cs/globals.coffee \
 	cs/pencil.coffee \
 	cs/world.coffee \
+	cs/world1.coffee \
+	cs/world2.coffee \
 	cs/tile.coffee \
 	cs/hero.coffee \
 	cs/cupcake.coffee \

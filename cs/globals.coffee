@@ -15,20 +15,6 @@ time = 0
 seconds = -> 0.001 * time
 deltaSeconds = -> 0.001 * dt 
 
-images = new ImageGroup [
-	'images/pencil.png'
-	'images/background.jpg'
-	'images/walk.png'
-	'images/cupcake.png'
-	'images/first_baked.png'
-	'images/startScreen_baked.png'
-	'images/loseScreen.png'
-	'images/winScreen.png'
-	'images/heart1.png'
-]
-
-pencil = null
-world = null
 scratchManifold = new WorldManifold
 
 queueFrame = (state) ->
@@ -51,7 +37,6 @@ TILE_WIDTH = 26
 TILE_HEIGHT = 16
 WORLD_WIDTH = TILE_SIZE * TILE_WIDTH
 WORLD_HEIGHT = TILE_SIZE * TILE_HEIGHT
-
 
 GRAVITY = 1024
 

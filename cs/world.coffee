@@ -1,3 +1,5 @@
+world = null
+
 STATUS_ACTIVE = 0
 STATUS_WIN = 1
 STATUS_LOSE = 2
@@ -16,42 +18,24 @@ class World
 		if options.distractionTiles?
 			@tiles[i].setDistracting() for i in options.distractionTiles
 		
-		@hero = new HeroSprite(options.hero) unless options.hero is undefined
-		@cupcake = new CupcakeSprite(options.cupcake) unless options.cupcake is undefined
-
 		@status = STATUS_ACTIVE
-		if @hero? and @cupcake?
-			listener = new ContactListener
-			# listener.EndContact = (contact)=>
-			# listener.PreSolve = (contact, oldManifold)=>
-			# listener.PostSolve = (contact, impulse)=>
-			listener.BeginContact = (contact)=>
-				if contact.GetFixtureA().GetBody().GetUserData() == @hero
-					if contact.GetFixtureB().GetBody().GetUserData() == @cupcake
-						@status = STATUS_WIN
-				else if contact.GetFixtureB().GetBody().GetUserData() == @hero
-					if contact.GetFixtureA().GetBody().GetUserData() == @cupcake
-						@status = STATUS_WIN
-			@physics.SetContactListener(listener)
+
+	onTick: ->
+	onDraw: ->
 
 	tick: ->
 		return unless @status == STATUS_ACTIVE
 		@physics.Step(deltaSeconds(), 10, 10)
 		if @status == STATUS_ACTIVE
 			@tileUnder(mouseX, mouseY)?.erase() if mouseDown
-			@cupcake?.tick()
-			@hero?.tick()
-			if @cupcake?.outOfBounds() or @hero?.outOfBounds()
-				@status = STATUS_LOSE
-
+			@onTick()
 
 	draw: ->
 		g.save()
 		g.translate(@offsetX, @offsetY)
 		@physics.DrawDebugData() if DEBUG_PHYSICS and showPhysics
 		tile.draw() for tile in @tiles				
-		@cupcake?.draw()
-		@hero?.draw()
+		@onDraw()
 		g.restore()
 
 	getTile: (x,y) -> 
