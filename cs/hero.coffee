@@ -2,7 +2,6 @@
 class HeroSprite
 	constructor: (options) ->
 		{ @walkingSpeed } = options
-		@status = HERO_STATUS_WALKING
 
 		bodyDef = new BodyDef
 		bodyDef.fixedRotation = yes

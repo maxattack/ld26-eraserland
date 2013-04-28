@@ -1,4 +1,5 @@
 # entry-point function
+doc = null
 
 $ ->
 	# get canvas context
@@ -31,19 +32,20 @@ $ ->
 			e.preventDefault()
 
 	if DEBUG_PHYSICS
-		doc.keydown (e) -> showPhysics = !showPhysics if e.which == 80
+		doc.on 'keydown.debugPhysics', (e) -> 
+			showPhysics = !showPhysics if e.which == 80
+			true
 
-	# start music?
-	# if (new Audio()).canPlayType('audio/ogg; codecs=vorbis') == 'probably'
-	# 	music = new Audio('audio/music.ogg')
-	# 	music.loop = true
-	# 	music.play()
 
 	# init various globals
 	time = rawMillis()
 	new Pencil
 
 	beginStartScreen = ->
+		if (new Audio()).canPlayType('audio/ogg; codecs=vorbis') == 'probably'
+			music = new Audio('audio/music.ogg')
+			music.loop = true
+			music.play()
 		new World startScreen
 		doStartScreen()
 
@@ -68,11 +70,18 @@ $ ->
 
 	transition = 0
 	timeout = 0
+	totalLevels = 2
+	currentLevel = 0
 
 	beginGameplay = ->
-		new World2
-		transition = 0
-		doGameplay()
+		switch currentLevel
+			when 0 then new World1
+			when 1 then new World2
+			else world = null
+		if world?
+			transition = 0
+			doGameplay()
+
 
 	doGameplay = ->
 		clearBackground()
@@ -121,18 +130,28 @@ $ ->
 		queueFrame doWinScreenIn
 
 	doWinScreenIn = ->
+		duration = 4
 		transition += 0.1 * (1.0 - transition)
 		clearBackground()
+		u = timeout/(0.25*duration)
+		u = 1 if u > 1
+		g.globalAlpha = (1-u)*(1-u)
 		world.draw()
-		g.drawImage(images.heart1, canvas.width-200, canvas.height - 200)
+		g.globalAlpha = 1
+
 		g.drawImage(
 			images.winScreen,
 			0.5 * (canvas.width - images.winScreen.width),
-			125 * transition
+			175 * transition
 		)
 		pencil.draw()
-		queueFrame doWinScreenIn
 
+		timeout += deltaSeconds()
+		if timeout > duration && currentLevel < totalLevels-1
+			currentLevel++
+			beginGameplay()
+		else
+			queueFrame doWinScreenIn
 
 	do ->
 		if images.loading()
@@ -142,4 +161,5 @@ $ ->
 				queueFrame arguments.callee		
 		else
 			# beginStartScreen()
+			currentLevel = 1
 			beginGameplay()

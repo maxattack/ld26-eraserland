@@ -6,12 +6,13 @@ STATUS_LOSE = 2
 
 class World
 	constructor: (options)->
+		world.onDestroy() if world?
 		world = this
 		{@tilemap} = options
 		@offsetX = 0.5 * (canvas.width - WORLD_WIDTH) + 2
 		@offsetY = 0.5 * (canvas.height - WORLD_HEIGHT) + 20
 		@physics = setupPhysics()
-		
+		@mPhysicsMouse = Vec2.Make(0,0)		
 		@tiles = (new Tile(i) for i in [0..(TILE_WIDTH*TILE_HEIGHT-1)])
 		if options.solidTiles?
 			@tiles[i].setSolid() for i in options.solidTiles
@@ -22,6 +23,14 @@ class World
 
 	onTick: ->
 	onDraw: ->
+	onDestroy: ->
+
+	physicsMouse: ->
+		@mPhysicsMouse.Set(
+			(mouseX - @offsetX)/PIXELS_PER_METER,
+			(mouseY - @offsetY)/PIXELS_PER_METER
+		)
+		@mPhysicsMouse
 
 	tick: ->
 		return unless @status == STATUS_ACTIVE
@@ -48,7 +57,7 @@ class World
 		)
 
 setupPhysics = ->
-	physics = new b2World(new Vec2(0, GRAVITY / PIXELS_PER_METER), no)
+	physics = new b2World(new Vec2(0, GRAVITY), no)
 
 
 	bodyDef = new BodyDef

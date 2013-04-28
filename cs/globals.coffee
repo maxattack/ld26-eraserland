@@ -21,7 +21,7 @@ queueFrame = (state) ->
 	# tick time
 	dt = rawMillis() - time
 	time = rawMillis()
-	dt = Math.min(dt, 33)
+	dt = Math.min(dt, 22)
 	# clear frame events
 	mousePressed = no
 	mouseReleased = no
@@ -38,7 +38,7 @@ TILE_HEIGHT = 16
 WORLD_WIDTH = TILE_SIZE * TILE_WIDTH
 WORLD_HEIGHT = TILE_SIZE * TILE_HEIGHT
 
-GRAVITY = 1024
+GRAVITY = 32
 
 TILE_TYPE_EMPTY = 0
 TILE_TYPE_SOLID = 1

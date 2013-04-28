@@ -4,8 +4,8 @@ class World1 extends World
 	constructor: ->
 		super firstLevel
 
-		@hero = new HeroSprite(options.hero)
-		@cupcake = new CupcakeSprite(options.cupcake)
+		@hero = new HeroSprite(firstLevel.hero)
+		@cupcake = new CupcakeSprite(firstLevel.cupcake)
 
 		listener = new ContactListener
 		# listener.EndContact = (contact)=>

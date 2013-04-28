@@ -10,6 +10,7 @@ class Tile
 	isVisible: -> @type != TILE_TYPE_EMPTY
 
 	setSolid: ->
+		alert 'EEK!' if @type != TILE_TYPE_EMPTY
 		@type = TILE_TYPE_SOLID
 		fixDef = new FixtureDef
 		fixDef.density = 1
@@ -25,6 +26,7 @@ class Tile
 		@body.SetUserData(this)
 
 	setDistracting: ->
+		alert 'ACK!' if @type != TILE_TYPE_EMPTY
 		@type = TILE_TYPE_DISTRACTION
 
 	erase: ->

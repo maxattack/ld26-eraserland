@@ -30,7 +30,7 @@
 	}
 }());
 ;
-  var Body, BodyDef, CatSprite, CircleShape, ContactListener, CupcakeSprite, DEBUG_PHYSICS, DebugDraw, Fixture, FixtureDef, GRAVITY, HeroSprite, ImageGroup, K, MPP, MassData, PIXELS_PER_METER, Pencil, PolygonShape, STATUS_ACTIVE, STATUS_LOSE, STATUS_WIN, TAU, TILE_HEIGHT, TILE_SIZE, TILE_TYPE_DISTRACTION, TILE_TYPE_EMPTY, TILE_TYPE_SOLID, TILE_WIDTH, Tile, Vec2, WORLD_HEIGHT, WORLD_WIDTH, World, World1, World2, WorldManifold, b2World, canvas, clearBackground, deltaSeconds, dt, firstLevel, g, i, images, mouseDown, mousePressed, mouseReleased, mouseX, mouseY, pencil, pixToTile, queueFrame, randRange, rawMillis, scratchManifold, secondLevel, seconds, setupPhysics, showPhysics, startScreen, tileId, time, world,
+  var Body, BodyDef, CatSprite, CircleShape, ContactListener, CupcakeSprite, DEBUG_PHYSICS, DebugDraw, Fixture, FixtureDef, GRAVITY, HeroSprite, ImageGroup, K, MPP, MassData, PIXELS_PER_METER, Pencil, PolygonShape, STATUS_ACTIVE, STATUS_LOSE, STATUS_WIN, TAU, TILE_HEIGHT, TILE_SIZE, TILE_TYPE_DISTRACTION, TILE_TYPE_EMPTY, TILE_TYPE_SOLID, TILE_WIDTH, Tile, Vec2, WORLD_HEIGHT, WORLD_WIDTH, World, World1, World2, WorldManifold, b2World, canvas, clearBackground, createBox, deltaSeconds, doc, dt, firstLevel, g, images, mouseDown, mousePressed, mouseReleased, mouseX, mouseY, pencil, pixToTile, queueFrame, randRange, rawMillis, scratchManifold, secondLevel, seconds, setupPhysics, showPhysics, startScreen, tileId, time, world,
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
@@ -156,7 +156,7 @@
   queueFrame = function(state) {
     dt = rawMillis() - time;
     time = rawMillis();
-    dt = Math.min(dt, 33);
+    dt = Math.min(dt, 22);
     mousePressed = false;
     mouseReleased = false;
     return requestAnimationFrame(state);
@@ -176,7 +176,7 @@
 
   WORLD_HEIGHT = TILE_SIZE * TILE_HEIGHT;
 
-  GRAVITY = 1024;
+  GRAVITY = 32;
 
   TILE_TYPE_EMPTY = 0;
 
@@ -247,11 +247,15 @@
     function World(options) {
       var i, _i, _j, _len, _len1, _ref, _ref1;
 
+      if (world != null) {
+        world.onDestroy();
+      }
       world = this;
       this.tilemap = options.tilemap;
       this.offsetX = 0.5 * (canvas.width - WORLD_WIDTH) + 2;
       this.offsetY = 0.5 * (canvas.height - WORLD_HEIGHT) + 20;
       this.physics = setupPhysics();
+      this.mPhysicsMouse = Vec2.Make(0, 0);
       this.tiles = (function() {
         var _i, _ref, _results;
 
@@ -281,6 +285,13 @@
     World.prototype.onTick = function() {};
 
     World.prototype.onDraw = function() {};
+
+    World.prototype.onDestroy = function() {};
+
+    World.prototype.physicsMouse = function() {
+      this.mPhysicsMouse.Set((mouseX - this.offsetX) / PIXELS_PER_METER, (mouseY - this.offsetY) / PIXELS_PER_METER);
+      return this.mPhysicsMouse;
+    };
 
     World.prototype.tick = function() {
       var _ref;
@@ -335,7 +346,7 @@
   setupPhysics = function() {
     var body, bodyDef, debugDraw, fixDef, physics;
 
-    physics = new b2World(new Vec2(0, GRAVITY / PIXELS_PER_METER), false);
+    physics = new b2World(new Vec2(0, GRAVITY), false);
     bodyDef = new BodyDef;
     bodyDef.type = Body.b2_staticBody;
     bodyDef.position.Set(TILE_WIDTH / 2, TILE_HEIGHT + 0.5);
@@ -373,8 +384,8 @@
         _this = this;
 
       World1.__super__.constructor.call(this, firstLevel);
-      this.hero = new HeroSprite(options.hero);
-      this.cupcake = new CupcakeSprite(options.cupcake);
+      this.hero = new HeroSprite(firstLevel.hero);
+      this.cupcake = new CupcakeSprite(firstLevel.cupcake);
       listener = new ContactListener;
       listener.BeginContact = function(contact) {
         if (contact.GetFixtureA().GetBody().GetUserData() === _this.hero) {
@@ -409,43 +420,67 @@
 
   MPP = 1.0 / PIXELS_PER_METER;
 
+  createBox = function(x, y, w, h) {
+    var dx, dy, result, vert, _i, _len, _ref;
+
+    result = new PolygonShape;
+    result.SetAsBox(0.5 * MPP * w, 0.5 * MPP * h);
+    dx = MPP * x - (-0.5 * MPP * w);
+    dy = MPP * y - (-0.5 * MPP * h);
+    _ref = result.GetVertices();
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      vert = _ref[_i];
+      vert.x += dx;
+      vert.y += dy;
+    }
+    return result;
+  };
+
   CatSprite = (function() {
-    function CatSprite(i, shapes) {
-      var bodyDef, dx, dy, fixDef, shape, vert, _i, _j, _len, _len1, _ref;
+    function CatSprite(i, options) {
+      var bodyDef, fixDef, shape, _i, _len, _ref;
 
       i += 1;
       this.image = i >= 10 ? images['cat' + i] : images['cat0' + i];
       bodyDef = new BodyDef;
       bodyDef.type = Body.b2_dynamicBody;
-      bodyDef.position.Set(randRange(1, TILE_WIDTH - 1), randRange(2, TILE_HEIGHT - 4));
-      bodyDef.linearVelocity.Set(randRange(-0.5, 0.5), randRange(-10, -20));
+      bodyDef.linearDamping = 0.0;
+      bodyDef.position.Set(options.x, options.y);
+      bodyDef.angle = options.a;
       this.body = world.physics.CreateBody(bodyDef);
       fixDef = new FixtureDef;
-      fixDef.density = 1;
-      fixDef.friction = 0.5;
-      fixDef.restitution = 0.2;
-      for (_i = 0, _len = shapes.length; _i < _len; _i++) {
-        shape = shapes[_i];
+      fixDef.density = 2;
+      fixDef.friction = 0.4;
+      fixDef.restitution = 0.9;
+      _ref = options.shapes;
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        shape = _ref[_i];
         if ('r' in shape) {
           fixDef.shape = new CircleShape(MPP * shape.r);
           fixDef.shape.SetLocalPosition(Vec2.Make(MPP * shape.x, MPP * shape.y));
           this.body.CreateFixture(fixDef);
         } else {
-          fixDef.shape = new PolygonShape;
-          fixDef.shape.SetAsBox(0.5 * MPP * shape.w, 0.5 * MPP * shape.h);
-          dx = MPP * shape.x - (-0.5 * MPP * shape.w);
-          dy = MPP * shape.y - (-0.5 * MPP * shape.h);
-          _ref = fixDef.shape.GetVertices();
-          for (_j = 0, _len1 = _ref.length; _j < _len1; _j++) {
-            vert = _ref[_j];
-            vert.x += dx;
-            vert.y += dy;
-          }
+          fixDef.shape = createBox(shape.x, shape.y, shape.w, shape.h);
           this.body.CreateFixture(fixDef);
         }
       }
-      console.log(this.image);
+      this.body.SetUserData(this);
+      this.next = null;
+      this.prev = null;
+      this.isAlive = true;
+      this.alpha = 1;
     }
+
+    CatSprite.prototype.destroy = function() {
+      this.next = null;
+      this.prev = null;
+      world.physics.DestroyBody(this.body);
+      return this.isAlive = false;
+    };
+
+    CatSprite.prototype.outOfBounds = function() {
+      return this.body.GetPosition().y > TILE_HEIGHT + 5;
+    };
 
     CatSprite.prototype.draw = function() {
       var p;
@@ -458,6 +493,20 @@
       return g.restore();
     };
 
+    CatSprite.prototype.drawFadeOut = function() {
+      var p;
+
+      p = this.body.GetPosition();
+      this.alpha *= 0.75;
+      g.save();
+      g.globalAlpha = this.alpha;
+      g.translate(32 * p.x, 32 * p.y);
+      g.rotate(this.body.GetAngle());
+      g.drawImage(this.image, 0, 0);
+      g.restore();
+      return this.alpha < 0.02;
+    };
+
     return CatSprite;
 
   })();
@@ -466,34 +515,109 @@
     __extends(World2, _super);
 
     function World2() {
-      var i, shapes;
+      var cat, i, _i, _ref, _ref1;
 
       World2.__super__.constructor.call(this, secondLevel);
-      this.cats = (function() {
-        var _i, _len, _ref, _results;
-
-        _ref = secondLevel.cats;
-        _results = [];
-        for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
-          shapes = _ref[i];
-          _results.push(new CatSprite(i, shapes));
+      this.firstCat = null;
+      this.fadingCats = null;
+      for (i = _i = _ref = secondLevel.cats.length - 1; _ref <= 0 ? _i <= 0 : _i >= 0; i = _ref <= 0 ? ++_i : --_i) {
+        cat = new CatSprite(i, secondLevel.cats[i]);
+        cat.next = this.firstCat;
+        if ((_ref1 = this.firstCat) != null) {
+          _ref1.prev = cat;
         }
-        return _results;
-      })();
+        this.firstCat = cat;
+      }
     }
 
-    World2.prototype.onTick = function() {};
+    World2.prototype.destroyCat = function(cat) {
+      var _ref, _ref1, _ref2;
+
+      if (!cat.isAlive) {
+        return;
+      }
+      if ((_ref = cat.next) != null) {
+        _ref.prev = cat.prev;
+      }
+      if ((_ref1 = cat.prev) != null) {
+        _ref1.next = cat.next;
+      }
+      if (cat === this.firstCat) {
+        this.firstCat = cat.next;
+      }
+      cat.destroy();
+      cat.next = this.fadingCats;
+      if ((_ref2 = this.fadingCats) != null) {
+        _ref2.prev = cat;
+      }
+      return this.fadingCats = cat;
+    };
+
+    World2.prototype.onTick = function() {
+      var cat, selectFixture, _results,
+        _this = this;
+
+      if (mouseDown) {
+        selectFixture = function(fixture) {
+          var _ref;
+
+          if (((_ref = fixture.GetBody().GetUserData()) != null ? _ref.constructor : void 0) === CatSprite) {
+            _this.destroyCat(fixture.GetBody().GetUserData());
+          }
+          return false;
+        };
+        this.physics.QueryPoint(selectFixture, this.physicsMouse());
+      }
+      if (this.firstCat != null) {
+        cat = this.firstCat;
+        _results = [];
+        while (cat != null) {
+          if (cat.outOfBounds()) {
+            this.status = STATUS_LOSE;
+            break;
+          }
+          _results.push(cat = cat.next);
+        }
+        return _results;
+      } else {
+        if (this.fadingCats == null) {
+          return this.status = STATUS_WIN;
+        }
+      }
+    };
 
     World2.prototype.onDraw = function() {
-      var cat, _i, _len, _ref, _results;
+      var c, next, _ref, _ref1, _results;
 
-      _ref = this.cats;
+      c = this.firstCat;
+      while (c != null) {
+        c.draw();
+        c = c.next;
+      }
+      c = this.fadingCats;
       _results = [];
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        cat = _ref[_i];
-        _results.push(cat.draw());
+      while (c != null) {
+        next = c.next;
+        if (c.drawFadeOut()) {
+          if ((_ref = c.next) != null) {
+            _ref.prev = c.prev;
+          }
+          if ((_ref1 = c.prev) != null) {
+            _ref1.next = c.next;
+          }
+          if (c === this.fadingCats) {
+            this.fadingCats = c.next;
+          } else {
+
+          }
+        }
+        _results.push(c = next);
       }
       return _results;
+    };
+
+    World2.prototype.onDestroy = function() {
+      return doc.off('keydown.world2');
     };
 
     return World2;
@@ -519,6 +643,9 @@
     Tile.prototype.setSolid = function() {
       var bodyDef, fixDef;
 
+      if (this.type !== TILE_TYPE_EMPTY) {
+        alert('EEK!');
+      }
       this.type = TILE_TYPE_SOLID;
       fixDef = new FixtureDef;
       fixDef.density = 1;
@@ -535,6 +662,9 @@
     };
 
     Tile.prototype.setDistracting = function() {
+      if (this.type !== TILE_TYPE_EMPTY) {
+        alert('ACK!');
+      }
       return this.type = TILE_TYPE_DISTRACTION;
     };
 
@@ -570,7 +700,6 @@
       var bodyDef, fixDef, vert, _i, _len, _ref;
 
       this.walkingSpeed = options.walkingSpeed;
-      this.status = HERO_STATUS_WALKING;
       bodyDef = new BodyDef;
       bodyDef.fixedRotation = true;
       bodyDef.type = Body.b2_dynamicBody;
@@ -751,202 +880,278 @@
 
   secondLevel = {
     tilemap: images.secondBaked,
-    solidTiles: (function() {
-      var _i, _ref, _results;
-
-      _results = [];
-      for (i = _i = 0, _ref = TILE_WIDTH - 1; 0 <= _ref ? _i <= _ref : _i >= _ref; i = 0 <= _ref ? ++_i : --_i) {
-        _results.push(tileId(i, 15));
-      }
-      return _results;
-    })(),
-    distractionTiles: (function() {
-      var _i, _ref, _results;
-
-      _results = [];
-      for (i = _i = 0, _ref = TILE_WIDTH - 1; 0 <= _ref ? _i <= _ref : _i >= _ref; i = 0 <= _ref ? ++_i : --_i) {
-        _results.push(tileId(i, 14));
-      }
-      return _results;
-    })(),
+    solidTiles: [241, 242, 243, 268, 269, 294, 295, 296, 297, 298, 299, 300, 301, 302, 320, 321, 322, 323, 324, 325, 326, 327, 328, 350, 351, 352],
+    distractionTiles: [267, 270, 271, 275, 276, 272, 273, 274, 348, 349, 353, 354],
     cats: [
-      [
-        {
-          r: 18,
-          x: 30,
-          y: 28
-        }, {
-          x: 12,
-          y: 32,
-          w: 58,
-          h: 32
-        }
-      ], [
-        {
-          r: 37,
-          x: 90,
-          y: 40
-        }, {
-          x: 49,
-          y: 59,
-          r: 20
-        }
-      ], [
-        {
-          x: 26,
-          y: 4,
-          w: 41,
-          h: 91
-        }
-      ], [
-        {
-          x: 43,
-          y: 34,
-          r: 31
-        }
-      ], [
-        {
-          x: 7,
-          y: 1,
-          w: 51,
-          h: 154
-        }
-      ], [
-        {
-          x: 50,
-          y: 46,
-          r: 28
-        }, {
-          x: 54,
-          y: 98,
-          r: 32
-        }
-      ], [
-        {
-          x: 4,
-          y: 7,
-          w: 88,
-          h: 49
-        }
-      ], [
-        {
-          x: 35,
-          y: 36,
-          r: 26
-        }
-      ], [
-        {
-          x: 53,
-          y: 49,
-          r: 44
-        }
-      ], [
-        {
-          x: 53,
-          y: 71,
-          r: 32
-        }, {
-          x: 29,
-          y: 46,
-          r: 16
-        }
-      ], [
-        {
-          x: 21,
-          y: 32,
-          w: 89,
-          h: 60
-        }
-      ], [
-        {
-          x: 7,
-          y: 26,
-          w: 51,
-          h: 36
-        }, {
-          x: 27,
-          y: 23,
-          r: 17
-        }
-      ], [
-        {
-          x: 55,
-          y: 32,
-          r: 30
-        }, {
-          x: 24,
-          y: 27,
-          r: 18
-        }, {
-          x: 17,
-          y: 44,
-          r: 7
-        }
-      ], [
-        {
-          x: 14,
-          y: 38,
-          w: 43,
-          h: 113
-        }, {
-          x: 34,
-          y: 40,
-          w: 13,
-          h: 33
-        }, {
-          x: 57,
-          y: 45,
-          r: 17
-        }
-      ], [
-        {
-          x: 4,
-          y: 12,
-          w: 58,
-          h: 44
-        }, {
-          x: 13,
-          y: 4,
-          w: 42,
-          h: 11
-        }
-      ], [
-        {
-          x: 45,
-          y: 35,
-          r: 25
-        }, {
-          x: 45,
-          y: 86,
-          r: 23
-        }
-      ], [
-        {
-          x: 53,
-          y: 33,
-          r: 27
-        }, {
-          x: 6,
-          y: 35,
-          w: 34,
-          h: 60
-        }
-      ], [
-        {
-          x: 36,
-          y: 39,
-          r: 22
-        }, {
-          x: 34,
-          y: 78,
-          r: 27
-        }
-      ]
+      {
+        "x": 12.323300015471101,
+        "y": 3.8465967395415808,
+        "a": -11.931000187779881,
+        "shapes": [
+          {
+            "r": 18,
+            "x": 30,
+            "y": 28
+          }, {
+            "x": 12,
+            "y": 32,
+            "w": 58,
+            "h": 32
+          }
+        ]
+      }, {
+        "x": 19.699587234467785,
+        "y": 10.29897078983545,
+        "a": 2.8718130925751546,
+        "shapes": [
+          {
+            "r": 37,
+            "x": 90,
+            "y": 40
+          }, {
+            "x": 49,
+            "y": 59,
+            "r": 20
+          }
+        ]
+      }, {
+        "x": 10.778058106993631,
+        "y": 5.047338544468242,
+        "a": 13.201050215975728,
+        "shapes": [
+          {
+            "x": 26,
+            "y": 4,
+            "w": 41,
+            "h": 91
+          }
+        ]
+      }, {
+        "x": 11.671088046543748,
+        "y": 4.065897481563266,
+        "a": 7.991763801087106,
+        "shapes": [
+          {
+            "x": 43,
+            "y": 34,
+            "r": 31
+          }
+        ]
+      }, {
+        "x": 14.766186723188492,
+        "y": 9.837711336068626,
+        "a": 10.479634211607914,
+        "shapes": [
+          {
+            "x": 7,
+            "y": 1,
+            "w": 51,
+            "h": 154
+          }
+        ]
+      }, {
+        "x": 10.162379425122746,
+        "y": 6.792643432858858,
+        "a": 8.002978031479138,
+        "shapes": [
+          {
+            "x": 50,
+            "y": 46,
+            "r": 28
+          }, {
+            "x": 54,
+            "y": 98,
+            "r": 32
+          }
+        ]
+      }, {
+        "x": 12.809443487308453,
+        "y": 1.4977038048259605,
+        "a": -19.37257229460358,
+        "shapes": [
+          {
+            "x": 4,
+            "y": 7,
+            "w": 88,
+            "h": 49
+          }
+        ]
+      }, {
+        "x": 8.007106549579278,
+        "y": 6.319051912201984,
+        "a": 43.473866249947534,
+        "shapes": [
+          {
+            "x": 35,
+            "y": 36,
+            "r": 26
+          }
+        ]
+      }, {
+        "x": 10.505405101055622,
+        "y": 5.0551576253364034,
+        "a": 22.49650269720527,
+        "shapes": [
+          {
+            "x": 53,
+            "y": 49,
+            "r": 44
+          }
+        ]
+      }, {
+        "x": 9.767136712039559,
+        "y": 7.603619634335876,
+        "a": 12.682970770830673,
+        "shapes": [
+          {
+            "x": 53,
+            "y": 71,
+            "r": 32
+          }, {
+            "x": 29,
+            "y": 46,
+            "r": 16
+          }
+        ]
+      }, {
+        "x": 12.397408589095967,
+        "y": 5.786530086979555,
+        "a": 56.032734074510145,
+        "shapes": [
+          {
+            "x": 21,
+            "y": 32,
+            "w": 89,
+            "h": 60
+          }
+        ]
+      }, {
+        "x": 8.190003793641523,
+        "y": 4.934742043413446,
+        "a": -43.084996381290374,
+        "shapes": [
+          {
+            "x": 7,
+            "y": 26,
+            "w": 51,
+            "h": 36
+          }, {
+            "x": 27,
+            "y": 23,
+            "r": 17
+          }
+        ]
+      }, {
+        "x": 10.533059920401506,
+        "y": 4.5769408248149395,
+        "a": -32.63040934184026,
+        "shapes": [
+          {
+            "x": 55,
+            "y": 32,
+            "r": 30
+          }, {
+            "x": 24,
+            "y": 27,
+            "r": 18
+          }, {
+            "x": 17,
+            "y": 44,
+            "r": 7
+          }
+        ]
+      }, {
+        "x": 16.9958769343146,
+        "y": 2.274543821191903,
+        "a": 1.0548678191798502,
+        "shapes": [
+          {
+            "x": 14,
+            "y": 38,
+            "w": 43,
+            "h": 113
+          }, {
+            "x": 34,
+            "y": 40,
+            "w": 13,
+            "h": 33
+          }, {
+            "x": 57,
+            "y": 45,
+            "r": 17
+          }
+        ]
+      }, {
+        "x": 7.939480181609701,
+        "y": 3.4160739750603977,
+        "a": 163.80547124435023,
+        "shapes": [
+          {
+            "x": 4,
+            "y": 12,
+            "w": 58,
+            "h": 44
+          }, {
+            "x": 13,
+            "y": 4,
+            "w": 42,
+            "h": 11
+          }
+        ]
+      }, {
+        "x": 13.405907708351902,
+        "y": 5.481645139773989,
+        "a": -46.02980863577727,
+        "shapes": [
+          {
+            "x": 45,
+            "y": 35,
+            "r": 25
+          }, {
+            "x": 45,
+            "y": 86,
+            "r": 23
+          }
+        ]
+      }, {
+        "x": 12.527323535720809,
+        "y": 5.8941459554959135,
+        "a": 44.616495518946024,
+        "shapes": [
+          {
+            "x": 53,
+            "y": 33,
+            "r": 27
+          }, {
+            "x": 6,
+            "y": 35,
+            "w": 34,
+            "h": 60
+          }
+        ]
+      }, {
+        "x": 10.982598330564482,
+        "y": 8.651135676741642,
+        "a": 18.29152329547216,
+        "shapes": [
+          {
+            "x": 36,
+            "y": 39,
+            "r": 22
+          }, {
+            "x": 34,
+            "y": 78,
+            "r": 27
+          }
+        ]
+      }
     ]
   };
 
+  doc = null;
+
   $(function() {
-    var beginGameplay, beginLose, beginStartScreen, beginWin, doGameplay, doLoseScreenIn, doStartScreen, doWinScreenIn, doc, timeout, transition;
+    var beginGameplay, beginLose, beginStartScreen, beginWin, currentLevel, doGameplay, doLoseScreenIn, doStartScreen, doWinScreenIn, timeout, totalLevels, transition;
 
     canvas = $('canvas')[0];
     if ((canvas != null ? canvas.getContext : void 0) == null) {
@@ -984,15 +1189,23 @@
       }
     });
     if (DEBUG_PHYSICS) {
-      doc.keydown(function(e) {
+      doc.on('keydown.debugPhysics', function(e) {
         if (e.which === 80) {
-          return showPhysics = !showPhysics;
+          showPhysics = !showPhysics;
         }
+        return true;
       });
     }
     time = rawMillis();
     new Pencil;
     beginStartScreen = function() {
+      var music;
+
+      if ((new Audio()).canPlayType('audio/ogg; codecs=vorbis') === 'probably') {
+        music = new Audio('audio/music.ogg');
+        music.loop = true;
+        music.play();
+      }
       new World(startScreen);
       return doStartScreen();
     };
@@ -1021,10 +1234,23 @@
     };
     transition = 0;
     timeout = 0;
+    totalLevels = 2;
+    currentLevel = 0;
     beginGameplay = function() {
-      new World2;
-      transition = 0;
-      return doGameplay();
+      switch (currentLevel) {
+        case 0:
+          new World1;
+          break;
+        case 1:
+          new World2;
+          break;
+        default:
+          world = null;
+      }
+      if (world != null) {
+        transition = 0;
+        return doGameplay();
+      }
     };
     doGameplay = function() {
       clearBackground();
@@ -1080,13 +1306,27 @@
       return queueFrame(doWinScreenIn);
     };
     doWinScreenIn = function() {
+      var duration, u;
+
+      duration = 4;
       transition += 0.1 * (1.0 - transition);
       clearBackground();
+      u = timeout / (0.25 * duration);
+      if (u > 1) {
+        u = 1;
+      }
+      g.globalAlpha = (1 - u) * (1 - u);
       world.draw();
-      g.drawImage(images.heart1, canvas.width - 200, canvas.height - 200);
-      g.drawImage(images.winScreen, 0.5 * (canvas.width - images.winScreen.width), 125 * transition);
+      g.globalAlpha = 1;
+      g.drawImage(images.winScreen, 0.5 * (canvas.width - images.winScreen.width), 175 * transition);
       pencil.draw();
-      return queueFrame(doWinScreenIn);
+      timeout += deltaSeconds();
+      if (timeout > duration && currentLevel < totalLevels - 1) {
+        currentLevel++;
+        return beginGameplay();
+      } else {
+        return queueFrame(doWinScreenIn);
+      }
     };
     return (function() {
       if (images.loading()) {
@@ -1096,6 +1336,7 @@
           return queueFrame(arguments.callee);
         }
       } else {
+        currentLevel = 1;
         return beginGameplay();
       }
     })();
