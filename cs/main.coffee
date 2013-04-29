@@ -43,14 +43,10 @@ $ ->
 
 	transition = 0
 	timeout = 0
-	totalLevels = 3
+	totalLevels = 5
 	currentLevel = -1
 
 	beginStartScreen = ->
-		if (new Audio()).canPlayType('audio/ogg; codecs=vorbis') == 'probably'
-			music = new Audio('audio/music.ogg')
-			music.loop = true
-			music.play()
 		new World startScreen
 		doStartScreen()
 
@@ -79,8 +75,11 @@ $ ->
 			when 0 then new World1
 			when 1 then new World2
 			when 2 then new World3
+			when 3 then new World4
+			# when 4 then new World5
+			when 4 then new World6
 			else
-				world.onDestroy() 
+				world?.onDestroy() 
 				world = null
 		if world?
 			transition = 0
@@ -120,7 +119,6 @@ $ ->
 			0.5 * (canvas.width - images.loseScreen.width),
 			175 * transition
 		)
-		pencil.draw()
 
 		if transition >= 0.8
 			hint = images["lose#{currentLevel+1}"]
@@ -131,6 +129,8 @@ $ ->
 					0.5 * (canvas.width - hint.width),
 					500 - 50 * hintt * hintt
 				)
+
+		pencil.draw()
 
 		timeout += deltaSeconds()
 		if timeout > duration
@@ -161,19 +161,82 @@ $ ->
 		pencil.draw()
 
 		timeout += deltaSeconds()
-		if timeout > duration && currentLevel < totalLevels-1
-			currentLevel++
-			beginGameplay()
+		if timeout > duration
+			if currentLevel < totalLevels-1
+				currentLevel++
+				beginGameplay()
+			else
+				doThankYou()
 		else
 			queueFrame doWinScreenIn
 
+	lastMinuteBlash = 0
+	doThankYou = ->
+		lastMinuteBlash += 0.25 * (1 - lastMinuteBlash)
+		if lastMinuteBlash > 0.999
+			g.globalAlpha = 1
+		else
+			g.globalAlpha = lastMinuteBlash
+		clearBackground()
+		g.drawImage(
+			images.winwinwin,
+			0.5 * (canvas.width - images.winwinwin.width),
+			0.5 * (canvas.height - images.winwinwin.height)
+		)
+		g.globalAlpha = 1
+		pencil.draw()
+		queueFrame doThankYou
+
+	loadingImages.startLoading()
+	if currentLevel == -1
+		if (new Audio()).canPlayType('audio/ogg; codecs=vorbis') == 'probably'
+			music = new Audio('audio/music.ogg')
+			music.loop = true
+			music.play()
+
 	do ->
+		if loadingImages.loading()
+			if images.failed()
+				alert "Eek! Failed to load Assets :*("
+			else
+				queueFrame arguments.callee
+		else
+			beginLoadingGame()
+
+	progress = 0
+	fakeTimer = 0
+
+	beginLoadingGame = ->
+		images.startLoading()
+		doLoadGame()
+
+	doLoadGame = ->
+		clearBackground()
+		# fakeTimer += deltaSeconds()
+		# if fakeTimer < 3
 		if images.loading()
 			if images.failed()
 				alert "Eek! Failed to load Assets :*("
 			else
-				queueFrame arguments.callee		
+				# rawProgress = fakeTimer / 3
+				rawProgress = images.progress()
+				progress += 0.1 * (rawProgress - progress)
+				i = Math.floor(progress * 9 + 0.5)
+				i = Math.min(8, i)
+				im = loadingImages["donutErase0#{9-i}"]
+				g.drawImage(
+					loadingImages.loadingText,
+					0.5 * (canvas.width - loadingImages.loadingText.width),
+					0.5 * (canvas.height - loadingImages.loadingText.height)
+				)
+				g.drawImage(
+					im,
+					0.5 * (canvas.width - im.width),
+					0.5 * (canvas.height - im.height)+50
+				)
+				queueFrame doLoadGame
 		else if currentLevel == -1
 			beginStartScreen()
 		else
 			beginGameplay()
+

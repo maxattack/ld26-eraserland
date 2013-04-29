@@ -1,14 +1,14 @@
 SCRIPTS = cs/util.coffee \
 	cs/globals.coffee \
 	cs/pencil.coffee \
+	cs/content.coffee \
 	cs/world.coffee \
 	cs/world1.coffee \
 	cs/world2.coffee \
 	cs/world3.coffee \
-	cs/tile.coffee \
-	cs/hero.coffee \
-	cs/cupcake.coffee \
-	cs/content.coffee \
+	cs/world4.coffee \
+	cs/world5.coffee \
+	cs/world6.coffee \
 	cs/main.coffee
 
 test:

@@ -9,6 +9,15 @@ createPolygon = (options) ->
 	result.SetAsArray(verts);
 	result
 
+drawBodyImage = (body, img) ->
+	p = body.GetPosition()
+	g.save()
+	g.translate(PIXELS_PER_METER*p.x, PIXELS_PER_METER*p.y)
+	g.rotate(body.GetAngle())
+	g.drawImage(img, 0, 0)
+	g.restore()
+
+
 class CloudSprite
 	constructor: (options) ->
 		{ @speed } = options
@@ -119,12 +128,7 @@ class DropSprite
 
 	draw: ->
 		return unless @body.IsActive()
-		p = @body.GetPosition()
-		g.save()
-		g.translate(PIXELS_PER_METER*p.x, PIXELS_PER_METER*p.y)
-		g.rotate(@body.GetAngle())
-		g.drawImage(@image, 0, 0)
-		g.restore()
+		drawBodyImage(@body, @image)
 
 class FlowerSprite
 	constructor: (i) ->

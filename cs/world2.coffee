@@ -16,13 +16,10 @@ class CatSprite
 		@image = if i >= 10 then images['cat'+i] else images['cat0'+i]
 		bodyDef = new BodyDef
 		bodyDef.type = Body.b2_dynamicBody
-		bodyDef.linearDamping = 0.0
-
 		# if options.y < 1 || options.y > 16
 		# 	bodyDef.position.Set(11+randRange(-1.5,2.5), randRange(2,4))
 		# else
 		bodyDef.position.Set(options.x, options.y)
-
 		bodyDef.angle = options.a
 
 		@body = world.physics.CreateBody(bodyDef)

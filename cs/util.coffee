@@ -30,23 +30,38 @@
 }());
 `
 
+stripName = (path) -> 
+	result = path.replace(/^.*[\\\/]/, '').split('.')[0]
+	unless result.indexOf("_") == -1
+		tokens = result.split('_')
+		result = tokens[0]
+		for i in [1..tokens.length-1]
+			s = tokens[i]
+			result = result + s[0].toUpperCase() + s.substring(1, s.length)
+	return result
+
 class ImageGroup
 	constructor: (paths) ->
-		stripName = (path) -> 
-			result = path.replace(/^.*[\\\/]/, '').split('.')[0]
-			unless result.indexOf("_") == -1
-				tokens = result.split('_')
-				result = tokens[0]
-				for i in [1..tokens.length-1]
-					s = tokens[i]
-					result = result + s[0].toUpperCase() + s.substring(1, s.length)
-			return result
-
+		@paths = paths
+		@numTotal = paths.length
 		@numLoading = paths.length
 		@numFailed = 0
 		for path in paths 
 			do(path) =>
 				img = new Image()
+				# img.onload = () =>
+				# 	@numLoading--
+				# img.onerror = \
+				# img.onabort = () =>
+				# 	@numLoading--
+				# 	@numFailed++
+				# img.src = path
+				this[stripName(path)] = img
+
+	startLoading: ->
+		for path in @paths
+			do(path) =>
+				img = this[stripName(path)]
 				img.onload = () =>
 					@numLoading--
 				img.onerror = \
@@ -54,8 +69,8 @@ class ImageGroup
 					@numLoading--
 					@numFailed++
 				img.src = path
-				this[stripName(path)] = img
 
+	progress: -> @numLoading / @numTotal
 	loading: -> @numLoading > 0
 	complete: -> @numLoading == 0 and @numFailed == 0
 	failed: -> @numFailed > 0
@@ -73,3 +88,5 @@ CircleShape = Box2D.Collision.Shapes.b2CircleShape
 DebugDraw = Box2D.Dynamics.b2DebugDraw
 WorldManifold = Box2D.Collision.b2WorldManifold
 ContactListener = Box2D.Dynamics.b2ContactListener
+RevoluteJointDef = Box2D.Dynamics.Joints.b2RevoluteJointDef
+MouseJointDef = Box2D.Dynamics.Joints.b2MouseJointDef

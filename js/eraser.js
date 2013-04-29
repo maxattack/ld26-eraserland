@@ -30,43 +30,38 @@
 	}
 }());
 ;
-  var Body, BodyDef, CatSprite, CircleShape, CloudSprite, ContactListener, CupcakeSprite, DEBUG_PHYSICS, DROP_HEADING, DROP_SPAWNRATE, DebugDraw, DropSprite, Fixture, FixtureDef, FlowerSprite, GRAVITY, HeroSprite, ImageGroup, K, MPP, MassData, PIXELS_PER_METER, Pencil, PolygonShape, STATUS_ACTIVE, STATUS_LOSE, STATUS_WIN, TAU, TILE_HEIGHT, TILE_SIZE, TILE_TYPE_DISTRACTION, TILE_TYPE_EMPTY, TILE_TYPE_SOLID, TILE_WIDTH, Tile, Vec2, WORLD_HEIGHT, WORLD_WIDTH, World, World1, World2, World3, WorldManifold, b2World, canvas, clearBackground, cloudBits, createBox, createPolygon, deltaSeconds, doc, dt, expovariate, firstLevel, g, images, mouseDown, mousePressed, mouseReleased, mouseX, mouseY, pencil, pixToTile, queueFrame, randRange, rawMillis, scratchManifold, secondLevel, seconds, setupPhysics, showPhysics, startScreen, thirdLevel, tileId, time, world, _i, _j, _results, _results1,
+  var BalloonSprite, Body, BodyDef, CatSprite, CircleShape, CloudSprite, ContactListener, CupcakeSprite, DEBUG_PHYSICS, DROP_HEADING, DROP_SPAWNRATE, DebrisSprite, DebugDraw, DropSprite, Fixture, FixtureDef, FlowerSprite, GRAVITY, HeroSprite, ImageGroup, K, MPP, MassData, MouseJointDef, PIXELS_PER_METER, Pencil, PolygonShape, RaccoonSprite, RevoluteJointDef, STATUS_ACTIVE, STATUS_LOSE, STATUS_WIN, TAU, TILE_HEIGHT, TILE_SIZE, TILE_TYPE_DISTRACTION, TILE_TYPE_EMPTY, TILE_TYPE_SOLID, TILE_WIDTH, Tile, Vec2, WORLD_HEIGHT, WORLD_WIDTH, World, World1, World2, World3, World4, World6, WorldManifold, b2World, balloonBits, canvas, clearBackground, cloudBits, createBox, createPolygon, deltaSeconds, doc, drawBodyImage, dt, expovariate, firstLevel, fourthLevel, g, images, loadingImages, mouseDown, mousePressed, mouseReleased, mouseX, mouseY, pencil, pixToTile, queueFrame, raccoonBits, randRange, rawMillis, scratchManifold, secondLevel, seconds, setupPhysics, showPhysics, sixthLevel, startScreen, stripName, thirdLevel, tileId, time, world, _i, _j, _results, _results1,
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
+  stripName = function(path) {
+    var i, result, s, tokens, _i, _ref;
+
+    result = path.replace(/^.*[\\\/]/, '').split('.')[0];
+    if (result.indexOf("_") !== -1) {
+      tokens = result.split('_');
+      result = tokens[0];
+      for (i = _i = 1, _ref = tokens.length - 1; 1 <= _ref ? _i <= _ref : _i >= _ref; i = 1 <= _ref ? ++_i : --_i) {
+        s = tokens[i];
+        result = result + s[0].toUpperCase() + s.substring(1, s.length);
+      }
+    }
+    return result;
+  };
+
   ImageGroup = (function() {
     function ImageGroup(paths) {
-      var path, stripName, _fn, _i, _len,
+      var path, _fn, _i, _len,
         _this = this;
 
-      stripName = function(path) {
-        var i, result, s, tokens, _i, _ref;
-
-        result = path.replace(/^.*[\\\/]/, '').split('.')[0];
-        if (result.indexOf("_") !== -1) {
-          tokens = result.split('_');
-          result = tokens[0];
-          for (i = _i = 1, _ref = tokens.length - 1; 1 <= _ref ? _i <= _ref : _i >= _ref; i = 1 <= _ref ? ++_i : --_i) {
-            s = tokens[i];
-            result = result + s[0].toUpperCase() + s.substring(1, s.length);
-          }
-        }
-        return result;
-      };
+      this.paths = paths;
+      this.numTotal = paths.length;
       this.numLoading = paths.length;
       this.numFailed = 0;
       _fn = function(path) {
         var img;
 
         img = new Image();
-        img.onload = function() {
-          return _this.numLoading--;
-        };
-        img.onerror = img.onabort = function() {
-          _this.numLoading--;
-          return _this.numFailed++;
-        };
-        img.src = path;
         return _this[stripName(path)] = img;
       };
       for (_i = 0, _len = paths.length; _i < _len; _i++) {
@@ -74,6 +69,35 @@
         _fn(path);
       }
     }
+
+    ImageGroup.prototype.startLoading = function() {
+      var path, _i, _len, _ref, _results,
+        _this = this;
+
+      _ref = this.paths;
+      _results = [];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        path = _ref[_i];
+        _results.push((function(path) {
+          var img;
+
+          img = _this[stripName(path)];
+          img.onload = function() {
+            return _this.numLoading--;
+          };
+          img.onerror = img.onabort = function() {
+            _this.numLoading--;
+            return _this.numFailed++;
+          };
+          return img.src = path;
+        })(path));
+      }
+      return _results;
+    };
+
+    ImageGroup.prototype.progress = function() {
+      return this.numLoading / this.numTotal;
+    };
 
     ImageGroup.prototype.loading = function() {
       return this.numLoading > 0;
@@ -114,6 +138,10 @@
   WorldManifold = Box2D.Collision.b2WorldManifold;
 
   ContactListener = Box2D.Dynamics.b2ContactListener;
+
+  RevoluteJointDef = Box2D.Dynamics.Joints.b2RevoluteJointDef;
+
+  MouseJointDef = Box2D.Dynamics.Joints.b2MouseJointDef;
 
   TAU = Math.PI + Math.PI;
 
@@ -180,7 +208,7 @@
 
   WORLD_HEIGHT = TILE_SIZE * TILE_HEIGHT;
 
-  GRAVITY = 32;
+  GRAVITY = Vec2.Make(0, 32);
 
   TILE_TYPE_EMPTY = 0;
 
@@ -241,970 +269,9 @@
 
   })();
 
-  world = null;
+  loadingImages = new ImageGroup(['images/donut_erase_01.png', 'images/donut_erase_02.png', 'images/donut_erase_03.png', 'images/donut_erase_04.png', 'images/donut_erase_05.png', 'images/donut_erase_06.png', 'images/donut_erase_07.png', 'images/donut_erase_08.png', 'images/donut_erase_09.png', 'images/loadingText.png']);
 
-  STATUS_ACTIVE = 0;
-
-  STATUS_WIN = 1;
-
-  STATUS_LOSE = 2;
-
-  World = (function() {
-    function World(options) {
-      var i, _i, _j, _len, _len1, _ref, _ref1;
-
-      if (world != null) {
-        world.onDestroy();
-      }
-      world = this;
-      this.tilemap = options.tilemap;
-      this.offsetX = 0.5 * (canvas.width - WORLD_WIDTH) + 2;
-      this.offsetY = 0.5 * (canvas.height - WORLD_HEIGHT) + 20;
-      this.physics = setupPhysics();
-      this.mPhysicsMouse = Vec2.Make(0, 0);
-      this.tiles = (function() {
-        var _i, _ref, _results;
-
-        _results = [];
-        for (i = _i = 0, _ref = TILE_WIDTH * TILE_HEIGHT - 1; 0 <= _ref ? _i <= _ref : _i >= _ref; i = 0 <= _ref ? ++_i : --_i) {
-          _results.push(new Tile(i));
-        }
-        return _results;
-      })();
-      if (options.solidTiles != null) {
-        _ref = options.solidTiles;
-        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-          i = _ref[_i];
-          this.tiles[i].setSolid();
-        }
-      }
-      if (options.distractionTiles != null) {
-        _ref1 = options.distractionTiles;
-        for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
-          i = _ref1[_j];
-          this.tiles[i].setDistracting();
-        }
-      }
-      this.status = STATUS_ACTIVE;
-    }
-
-    World.prototype.onTick = function() {};
-
-    World.prototype.onDraw = function() {};
-
-    World.prototype.onDestroy = function() {};
-
-    World.prototype.physicsMouse = function() {
-      this.mPhysicsMouse.Set((mouseX - this.offsetX) / PIXELS_PER_METER, (mouseY - this.offsetY) / PIXELS_PER_METER);
-      return this.mPhysicsMouse;
-    };
-
-    World.prototype.tick = function() {
-      var _ref;
-
-      if (this.status !== STATUS_ACTIVE) {
-        return;
-      }
-      this.physics.Step(deltaSeconds(), 10, 10);
-      if (this.status === STATUS_ACTIVE) {
-        if (mouseDown) {
-          if ((_ref = this.tileUnder(mouseX, mouseY)) != null) {
-            _ref.erase();
-          }
-        }
-        return this.onTick();
-      }
-    };
-
-    World.prototype.draw = function() {
-      var tile, _i, _len, _ref;
-
-      g.save();
-      g.translate(this.offsetX, this.offsetY);
-      if (DEBUG_PHYSICS && showPhysics) {
-        this.physics.DrawDebugData();
-      }
-      _ref = this.tiles;
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        tile = _ref[_i];
-        tile.draw();
-      }
-      this.onDraw();
-      return g.restore();
-    };
-
-    World.prototype.getTile = function(x, y) {
-      if (x >= 0 && x < TILE_WIDTH && y >= 0 && y < TILE_HEIGHT) {
-        return this.tiles[tileId(x, y)];
-      } else {
-        return null;
-      }
-    };
-
-    World.prototype.tileUnder = function(px, py) {
-      return this.getTile(Math.floor((px - this.offsetX) / TILE_SIZE), Math.floor((py - this.offsetY) / TILE_SIZE));
-    };
-
-    return World;
-
-  })();
-
-  setupPhysics = function() {
-    var body, bodyDef, debugDraw, fixDef, physics;
-
-    physics = new b2World(new Vec2(0, GRAVITY), false);
-    bodyDef = new BodyDef;
-    bodyDef.type = Body.b2_staticBody;
-    bodyDef.position.Set(TILE_WIDTH / 2, TILE_HEIGHT + 0.5);
-    fixDef = new FixtureDef;
-    fixDef.density = 1.0;
-    fixDef.friction = 0.5;
-    fixDef.restitution = 0.2;
-    fixDef.shape = new PolygonShape;
-    fixDef.shape.SetAsBox(TILE_WIDTH / 2 + 1, 0.5);
-    bodyDef.position.y = -0.5;
-    body = physics.CreateBody(bodyDef).CreateFixture(fixDef);
-    fixDef.shape = new PolygonShape;
-    fixDef.shape.SetAsBox(0.5, TILE_HEIGHT / 2);
-    bodyDef.position.Set(-0.5, TILE_HEIGHT / 2);
-    physics.CreateBody(bodyDef).CreateFixture(fixDef);
-    bodyDef.position.x = TILE_WIDTH + 0.5;
-    physics.CreateBody(bodyDef).CreateFixture(fixDef);
-    if (DEBUG_PHYSICS) {
-      debugDraw = new DebugDraw();
-      debugDraw.SetSprite(g);
-      debugDraw.SetDrawScale(PIXELS_PER_METER);
-      debugDraw.SetFillAlpha(0.5);
-      debugDraw.SetLineThickness(4.0);
-      debugDraw.SetFlags(DebugDraw.e_shapeBit | DebugDraw.e_jointBit);
-      physics.SetDebugDraw(debugDraw);
-    }
-    return physics;
-  };
-
-  World1 = (function(_super) {
-    __extends(World1, _super);
-
-    function World1() {
-      var listener,
-        _this = this;
-
-      World1.__super__.constructor.call(this, firstLevel);
-      this.hero = new HeroSprite(firstLevel.hero);
-      this.cupcake = new CupcakeSprite(firstLevel.cupcake);
-      listener = new ContactListener;
-      listener.BeginContact = function(contact) {
-        if (contact.GetFixtureA().GetBody().GetUserData() === _this.hero) {
-          if (contact.GetFixtureB().GetBody().GetUserData() === _this.cupcake) {
-            return _this.status = STATUS_WIN;
-          }
-        } else if (contact.GetFixtureB().GetBody().GetUserData() === _this.hero) {
-          if (contact.GetFixtureA().GetBody().GetUserData() === _this.cupcake) {
-            return _this.status = STATUS_WIN;
-          }
-        }
-      };
-      this.physics.SetContactListener(listener);
-    }
-
-    World1.prototype.onTick = function() {
-      this.cupcake.tick();
-      this.hero.tick();
-      if (this.cupcake.outOfBounds() || this.hero.outOfBounds()) {
-        return this.status = STATUS_LOSE;
-      }
-    };
-
-    World1.prototype.onDraw = function() {
-      this.cupcake.draw();
-      return this.hero.draw();
-    };
-
-    return World1;
-
-  })(World);
-
-  createBox = function(x, y, w, h) {
-    var dx, dy, result, vert, _i, _len, _ref;
-
-    result = new PolygonShape;
-    result.SetAsBox(0.5 * MPP * w, 0.5 * MPP * h);
-    dx = MPP * x - (-0.5 * MPP * w);
-    dy = MPP * y - (-0.5 * MPP * h);
-    _ref = result.GetVertices();
-    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-      vert = _ref[_i];
-      vert.x += dx;
-      vert.y += dy;
-    }
-    return result;
-  };
-
-  CatSprite = (function() {
-    function CatSprite(i, options) {
-      var bodyDef, fixDef, shape, _i, _len, _ref;
-
-      i += 1;
-      this.image = i >= 10 ? images['cat' + i] : images['cat0' + i];
-      bodyDef = new BodyDef;
-      bodyDef.type = Body.b2_dynamicBody;
-      bodyDef.linearDamping = 0.0;
-      bodyDef.position.Set(options.x, options.y);
-      bodyDef.angle = options.a;
-      this.body = world.physics.CreateBody(bodyDef);
-      fixDef = new FixtureDef;
-      fixDef.density = 2;
-      fixDef.friction = 0.4;
-      fixDef.restitution = 0.9;
-      _ref = options.shapes;
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        shape = _ref[_i];
-        if ('r' in shape) {
-          fixDef.shape = new CircleShape(MPP * shape.r);
-          fixDef.shape.SetLocalPosition(Vec2.Make(MPP * shape.x, MPP * shape.y));
-          this.body.CreateFixture(fixDef);
-        } else {
-          fixDef.shape = createBox(shape.x, shape.y, shape.w, shape.h);
-          this.body.CreateFixture(fixDef);
-        }
-      }
-      this.body.SetUserData(this);
-      this.next = null;
-      this.prev = null;
-      this.isAlive = true;
-      this.alpha = 1;
-    }
-
-    CatSprite.prototype.destroy = function() {
-      this.next = null;
-      this.prev = null;
-      world.physics.DestroyBody(this.body);
-      return this.isAlive = false;
-    };
-
-    CatSprite.prototype.outOfBounds = function() {
-      return this.body.GetPosition().y > TILE_HEIGHT + 5;
-    };
-
-    CatSprite.prototype.draw = function() {
-      var p;
-
-      p = this.body.GetPosition();
-      g.save();
-      g.translate(32 * p.x, 32 * p.y);
-      g.rotate(this.body.GetAngle());
-      g.drawImage(this.image, 0, 0);
-      return g.restore();
-    };
-
-    CatSprite.prototype.drawFadeOut = function() {
-      var p;
-
-      p = this.body.GetPosition();
-      this.alpha *= 0.75;
-      g.save();
-      g.globalAlpha = this.alpha;
-      g.translate(32 * p.x, 32 * p.y);
-      g.rotate(this.body.GetAngle());
-      g.drawImage(this.image, 0, 0);
-      g.restore();
-      return this.alpha < 0.02;
-    };
-
-    return CatSprite;
-
-  })();
-
-  World2 = (function(_super) {
-    __extends(World2, _super);
-
-    function World2() {
-      var cat, i, _i, _ref, _ref1;
-
-      World2.__super__.constructor.call(this, secondLevel);
-      this.firstCat = null;
-      this.fadingCats = null;
-      for (i = _i = _ref = secondLevel.cats.length - 1; _ref <= 0 ? _i <= 0 : _i >= 0; i = _ref <= 0 ? ++_i : --_i) {
-        cat = new CatSprite(i, secondLevel.cats[i]);
-        cat.next = this.firstCat;
-        if ((_ref1 = this.firstCat) != null) {
-          _ref1.prev = cat;
-        }
-        this.firstCat = cat;
-      }
-    }
-
-    World2.prototype.destroyCat = function(cat) {
-      var _ref, _ref1, _ref2;
-
-      if (!cat.isAlive) {
-        return;
-      }
-      if ((_ref = cat.next) != null) {
-        _ref.prev = cat.prev;
-      }
-      if ((_ref1 = cat.prev) != null) {
-        _ref1.next = cat.next;
-      }
-      if (cat === this.firstCat) {
-        this.firstCat = cat.next;
-      }
-      cat.destroy();
-      cat.next = this.fadingCats;
-      if ((_ref2 = this.fadingCats) != null) {
-        _ref2.prev = cat;
-      }
-      return this.fadingCats = cat;
-    };
-
-    World2.prototype.onTick = function() {
-      var cat, selectFixture, _results,
-        _this = this;
-
-      if (mouseDown) {
-        selectFixture = function(fixture) {
-          var _ref;
-
-          if (((_ref = fixture.GetBody().GetUserData()) != null ? _ref.constructor : void 0) === CatSprite) {
-            _this.destroyCat(fixture.GetBody().GetUserData());
-          }
-          return false;
-        };
-        this.physics.QueryPoint(selectFixture, this.physicsMouse());
-      }
-      if (this.firstCat != null) {
-        cat = this.firstCat;
-        _results = [];
-        while (cat != null) {
-          if (cat.outOfBounds()) {
-            this.status = STATUS_LOSE;
-            break;
-          }
-          _results.push(cat = cat.next);
-        }
-        return _results;
-      } else {
-        if (this.fadingCats == null) {
-          return this.status = STATUS_WIN;
-        }
-      }
-    };
-
-    World2.prototype.onDraw = function() {
-      var c, next, _ref, _ref1, _results;
-
-      c = this.firstCat;
-      while (c != null) {
-        c.draw();
-        c = c.next;
-      }
-      c = this.fadingCats;
-      _results = [];
-      while (c != null) {
-        next = c.next;
-        if (c.drawFadeOut()) {
-          if ((_ref = c.next) != null) {
-            _ref.prev = c.prev;
-          }
-          if ((_ref1 = c.prev) != null) {
-            _ref1.next = c.next;
-          }
-          if (c === this.fadingCats) {
-            this.fadingCats = c.next;
-          } else {
-
-          }
-        }
-        _results.push(c = next);
-      }
-      return _results;
-    };
-
-    World2.prototype.onDestroy = function() {};
-
-    return World2;
-
-  })(World);
-
-  cloudBits = null;
-
-  DROP_SPAWNRATE = 0.05;
-
-  DROP_HEADING = Vec2.Make(2, 4);
-
-  createPolygon = function(options) {
-    var i, result, v, verts;
-
-    result = new PolygonShape;
-    v = options.v;
-    verts = (function() {
-      var _i, _ref, _results;
-
-      _results = [];
-      for (i = _i = 0, _ref = (v.length / 2) - 1; 0 <= _ref ? _i <= _ref : _i >= _ref; i = 0 <= _ref ? ++_i : --_i) {
-        _results.push(Vec2.Make(MPP * v[i + i], MPP * v[i + i + 1]));
-      }
-      return _results;
-    })();
-    result.SetAsArray(verts);
-    return result;
-  };
-
-  CloudSprite = (function() {
-    function CloudSprite(options) {
-      var bodyDef, fixDef, fixture, i, shape, _i, _len, _ref;
-
-      this.speed = options.speed;
-      bodyDef = new BodyDef;
-      bodyDef.type = Body.b2_kinematicBody;
-      bodyDef.position.Set(options.x, options.y);
-      bodyDef.userData = this;
-      this.body = world.physics.CreateBody(bodyDef);
-      fixDef = new FixtureDef;
-      fixDef.isSensor = true;
-      this.mask = 0;
-      this.fixtureCount = thirdLevel.cloudShapes.length;
-      _ref = thirdLevel.cloudShapes;
-      for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
-        shape = _ref[i];
-        fixDef.shape = new CircleShape(MPP * shape.r);
-        fixDef.shape.SetLocalPosition(Vec2.Make(MPP * shape.x, MPP * shape.y));
-        fixDef.userData = i;
-        fixture = this.body.CreateFixture(fixDef);
-        this.mask |= 1 << i;
-      }
-      this.timeout = expovariate(DROP_SPAWNRATE);
-    }
-
-    CloudSprite.prototype.hasBit = function(i) {
-      return (this.mask & (1 << i)) !== 0;
-    };
-
-    CloudSprite.prototype.hasAnyBits = function() {
-      return this.mask !== 0;
-    };
-
-    CloudSprite.prototype.clearBit = function(i) {
-      return this.mask = this.mask & (~(1 << i));
-    };
-
-    CloudSprite.prototype.eraseFixture = function(fixture) {
-      if (!this.hasBit(fixture.GetUserData())) {
-        return;
-      }
-      this.body.DestroyFixture(fixture);
-      this.clearBit(fixture.GetUserData());
-      this.fixtureCount--;
-      if (!this.hasAnyBits()) {
-        return world.destroyCloud(this);
-      }
-    };
-
-    CloudSprite.prototype.tick = function() {
-      var c, fl, i, p, randomFixtureIndex, x, y, _i, _ref;
-
-      p = this.body.GetPosition();
-      p.x += this.speed * deltaSeconds();
-      if (p.x > TILE_WIDTH + 0.5) {
-        p.x = -5;
-      }
-      this.body.SetPosition(p);
-      this.timeout -= deltaSeconds();
-      if (this.timeout < 0) {
-        this.timeout = expovariate(DROP_SPAWNRATE);
-        randomFixtureIndex = Math.floor(randRange(0, this.fixtureCount));
-        fl = this.body.GetFixtureList();
-        for (i = _i = 1; 1 <= randomFixtureIndex ? _i <= randomFixtureIndex : _i >= randomFixtureIndex; i = 1 <= randomFixtureIndex ? ++_i : --_i) {
-          if (fl.GetNext() != null) {
-            fl = fl.GetNext();
-          }
-        }
-        p = this.body.GetPosition();
-        c = fl.GetShape().GetLocalPosition();
-        x = p.x + c.x;
-        y = p.y + c.y;
-        if (x > 0.25 && x < TILE_WIDTH - 0.25) {
-          return (_ref = world.getFreeDrop()) != null ? _ref.spawn(x, y) : void 0;
-        }
-      }
-    };
-
-    CloudSprite.prototype.draw = function() {
-      var bit, i, p, _i, _len, _results;
-
-      p = this.body.GetPosition();
-      _results = [];
-      for (i = _i = 0, _len = cloudBits.length; _i < _len; i = ++_i) {
-        bit = cloudBits[i];
-        if (this.hasBit(i)) {
-          _results.push(g.drawImage(bit, PIXELS_PER_METER * p.x, PIXELS_PER_METER * p.y));
-        }
-      }
-      return _results;
-    };
-
-    return CloudSprite;
-
-  })();
-
-  DropSprite = (function() {
-    function DropSprite(type) {
-      var bodyDef, fixDef;
-
-      this.image = images["drop0" + (type + 1)];
-      bodyDef = new BodyDef;
-      bodyDef.type = Body.b2_dynamicBody;
-      bodyDef.position.Set(-10, -10);
-      bodyDef.active = false;
-      bodyDef.userData = this;
-      this.body = world.physics.CreateBody(bodyDef);
-      fixDef = new FixtureDef;
-      fixDef.density = 1;
-      fixDef.friction = 0.5;
-      fixDef.restitution = 0.5;
-      fixDef.shape = createPolygon(thirdLevel.dropShapes[type]);
-      this.body.CreateFixture(fixDef);
-      this.timeout = -1;
-      this.next = null;
-    }
-
-    DropSprite.prototype.spawn = function(x, y) {
-      this.body.SetPosition(Vec2.Make(x, y));
-      this.body.SetAngle(0);
-      this.body.SetAngularVelocity(0);
-      this.body.SetLinearVelocity(DROP_HEADING);
-      this.body.SetActive(true);
-      return this.timeout = 1500;
-    };
-
-    DropSprite.prototype.tick = function() {
-      if (!this.body.IsActive()) {
-        return;
-      }
-      this.timeout -= dt;
-      if (this.timeout < 0) {
-        this.body.SetActive(false);
-        this.body.SetPosition(-10, -10);
-        return world.repool(this);
-      } else {
-        if (this.body.GetPosition().y > TILE_HEIGHT + 5) {
-          world.incFlower(this.body.GetPosition().x);
-          this.body.SetActive(false);
-          this.body.SetPosition(-10, -10);
-          return world.repool(this);
-        }
-      }
-    };
-
-    DropSprite.prototype.draw = function() {
-      var p;
-
-      if (!this.body.IsActive()) {
-        return;
-      }
-      p = this.body.GetPosition();
-      g.save();
-      g.translate(PIXELS_PER_METER * p.x, PIXELS_PER_METER * p.y);
-      g.rotate(this.body.GetAngle());
-      g.drawImage(this.image, 0, 0);
-      return g.restore();
-    };
-
-    return DropSprite;
-
-  })();
-
-  FlowerSprite = (function() {
-    function FlowerSprite(i) {
-      this.image = images["flower" + (i + 1)];
-      this.count = 0;
-      this.y = 0;
-      this.x = (1 + 2 * i) * canvas.width / 6.0 - 16;
-      if (i === 1) {
-        this.x += 32;
-      }
-    }
-
-    FlowerSprite.prototype.onDrop = function() {
-      if (this.count < 20) {
-        return this.count++;
-      }
-    };
-
-    FlowerSprite.prototype.visible = function() {
-      return this.y > 0.99 * this.image.height;
-    };
-
-    FlowerSprite.prototype.draw = function() {
-      if (this.count < 20) {
-        return;
-      }
-      this.y += 0.2 * (this.image.height - this.y);
-      return g.drawImage(this.image, this.x - 0.5 * this.image.width, canvas.height - this.y - world.offsetY);
-    };
-
-    return FlowerSprite;
-
-  })();
-
-  World3 = (function(_super) {
-    __extends(World3, _super);
-
-    function World3() {
-      var cloud, i, _i, _ref;
-
-      World3.__super__.constructor.call(this, thirdLevel);
-      if (cloudBits == null) {
-        cloudBits = [images.cloudy01, images.cloudy02, images.cloudy03, images.cloudy04, images.cloudy05, images.cloudy06, images.cloudy07, images.cloudy08, images.cloudy09, images.cloudy10];
-      }
-      this.clouds = (function() {
-        var _i, _len, _ref, _results;
-
-        _ref = thirdLevel.clouds;
-        _results = [];
-        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-          cloud = _ref[_i];
-          _results.push(new CloudSprite(cloud));
-        }
-        return _results;
-      })();
-      this.drops = (function() {
-        var _i, _results;
-
-        _results = [];
-        for (i = _i = 1; _i <= 128; i = ++_i) {
-          _results.push(new DropSprite(i % thirdLevel.dropShapes.length));
-        }
-        return _results;
-      })();
-      this.flowers = (function() {
-        var _i, _results;
-
-        _results = [];
-        for (i = _i = 0; _i <= 2; i = ++_i) {
-          _results.push(new FlowerSprite(i));
-        }
-        return _results;
-      })();
-      this.timeout = 1500;
-      this.nextFreeDrop = this.drops[0];
-      for (i = _i = 0, _ref = this.drops.length - 2; 0 <= _ref ? _i <= _ref : _i >= _ref; i = 0 <= _ref ? ++_i : --_i) {
-        this.drops[i].next = this.drops[i + 1];
-      }
-    }
-
-    World3.prototype.getFreeDrop = function() {
-      var result;
-
-      if (this.nextFreeDrop == null) {
-        return null;
-      }
-      result = this.nextFreeDrop;
-      this.nextFreeDrop = result.next;
-      result.next = null;
-      return result;
-    };
-
-    World3.prototype.repool = function(drop) {
-      drop.next = this.nextFreeDrop;
-      return this.nextFreeDrop = drop;
-    };
-
-    World3.prototype.incFlower = function(x) {
-      switch (false) {
-        case !(x < TILE_WIDTH / 3.0):
-          return this.flowers[0].onDrop();
-        case !(x > 2 * TILE_WIDTH / 3.0):
-          return this.flowers[2].onDrop();
-        default:
-          return this.flowers[1].onDrop();
-      }
-    };
-
-    World3.prototype.destroyCloud = function(cloud) {
-      var i;
-
-      i = this.clouds.indexOf(cloud);
-      return this.clouds.splice(i, 1);
-    };
-
-    World3.prototype.onTick = function() {
-      var cloud, drop, selectFixture, _i, _j, _len, _len1, _ref, _ref1,
-        _this = this;
-
-      if (mouseDown) {
-        selectFixture = function(fixture) {
-          var target;
-
-          target = fixture.GetBody().GetUserData();
-          if ((target != null ? target.constructor : void 0) === CloudSprite) {
-            target.eraseFixture(fixture);
-          }
-          return false;
-        };
-        this.physics.QueryPoint(selectFixture, this.physicsMouse());
-      }
-      if (this.clouds.length > 0) {
-        _ref = this.clouds;
-        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-          cloud = _ref[_i];
-          cloud.tick();
-        }
-        _ref1 = this.drops;
-        for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
-          drop = _ref1[_j];
-          drop.tick();
-        }
-      } else {
-        this.status = STATUS_LOSE;
-      }
-      if (this.flowers[0].visible() && this.flowers[1].visible() && this.flowers[2].visible()) {
-        this.timeout -= dt;
-        if (this.timeout < 0) {
-          return this.status = STATUS_WIN;
-        }
-      }
-    };
-
-    World3.prototype.onDraw = function() {
-      var cloud, drop, flower, _i, _j, _k, _len, _len1, _len2, _ref, _ref1, _ref2, _results;
-
-      _ref = this.clouds;
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        cloud = _ref[_i];
-        cloud.draw();
-      }
-      _ref1 = this.drops;
-      for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
-        drop = _ref1[_j];
-        drop.draw();
-      }
-      _ref2 = this.flowers;
-      _results = [];
-      for (_k = 0, _len2 = _ref2.length; _k < _len2; _k++) {
-        flower = _ref2[_k];
-        _results.push(flower.draw());
-      }
-      return _results;
-    };
-
-    World3.prototype.onDestroy = function() {};
-
-    return World3;
-
-  })(World);
-
-  Tile = (function() {
-    function Tile(i) {
-      this.x = i % TILE_WIDTH;
-      this.y = (i - this.x) / TILE_WIDTH;
-      this.type = TILE_TYPE_EMPTY;
-      this.body = null;
-    }
-
-    Tile.prototype.isSolid = function() {
-      return this.type === TILE_TYPE_SOLID;
-    };
-
-    Tile.prototype.isVisible = function() {
-      return this.type !== TILE_TYPE_EMPTY;
-    };
-
-    Tile.prototype.setSolid = function() {
-      var bodyDef, fixDef;
-
-      if (this.type !== TILE_TYPE_EMPTY) {
-        alert('EEK!');
-      }
-      this.type = TILE_TYPE_SOLID;
-      fixDef = new FixtureDef;
-      fixDef.density = 1;
-      fixDef.friction = 0.5;
-      fixDef.restitution = 0.2;
-      bodyDef = new BodyDef;
-      bodyDef.type = Body.b2_staticBody;
-      bodyDef.position.Set(this.x + 0.5, this.y + 0.5);
-      fixDef.shape = new PolygonShape;
-      fixDef.shape.SetAsBox(0.5, 0.5);
-      this.body = world.physics.CreateBody(bodyDef);
-      this.body.CreateFixture(fixDef);
-      return this.body.SetUserData(this);
-    };
-
-    Tile.prototype.setDistracting = function() {
-      if (this.type !== TILE_TYPE_EMPTY) {
-        alert('ACK!');
-      }
-      return this.type = TILE_TYPE_DISTRACTION;
-    };
-
-    Tile.prototype.erase = function() {
-      if (this.type === TILE_TYPE_EMPTY) {
-        return false;
-      }
-      if (this.body != null) {
-        world.physics.DestroyBody(this.body);
-        this.body = null;
-      }
-      this.type = TILE_TYPE_EMPTY;
-      return true;
-    };
-
-    Tile.prototype.draw = function() {
-      var x, y;
-
-      if (!this.isVisible()) {
-        return;
-      }
-      x = this.x << 5;
-      y = this.y << 5;
-      return g.drawImage(world.tilemap, x + x, y + y, 64, 64, x - 16, y - 16, 64, 64);
-    };
-
-    return Tile;
-
-  })();
-
-  HeroSprite = (function() {
-    function HeroSprite(options) {
-      var bodyDef, fixDef, vert, _i, _len, _ref;
-
-      this.walkingSpeed = options.walkingSpeed;
-      bodyDef = new BodyDef;
-      bodyDef.fixedRotation = true;
-      bodyDef.type = Body.b2_dynamicBody;
-      bodyDef.position.Set(options.x, options.y);
-      this.body = world.physics.CreateBody(bodyDef);
-      fixDef = new FixtureDef;
-      fixDef.density = 1;
-      fixDef.friction = 0.5;
-      fixDef.restitution = 0.2;
-      fixDef.shape = new PolygonShape;
-      fixDef.shape.SetAsBox(0.45, 0.7);
-      _ref = fixDef.shape.GetVertices();
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        vert = _ref[_i];
-        vert.y -= 0.255;
-      }
-      this.body.CreateFixture(fixDef);
-      fixDef.shape = new CircleShape(0.45);
-      fixDef.shape.SetLocalPosition(new Vec2(0, 0.5));
-      this.body.CreateFixture(fixDef);
-      this.body.SetUserData(this);
-    }
-
-    HeroSprite.prototype.outOfBounds = function() {
-      var p;
-
-      p = this.body.GetPosition();
-      return p.x < -1 || p.x > TILE_WIDTH + 1 || p.y > TILE_HEIGHT + 2;
-    };
-
-    HeroSprite.prototype.draw = function() {
-      var frame, h, p, w, x, y;
-
-      p = this.body.GetPosition();
-      x = 32 * (p.x - 0.5) - 6;
-      y = 32 * (p.y - 1);
-      frame = Math.floor(seconds() * 10) % 10;
-      w = images.walk.width;
-      h = images.walk.height / 10;
-      if (this.walkingSpeed < 0) {
-        g.save();
-        g.translate(x, y);
-        g.translate(w / 2, 0);
-        g.scale(-1, 1);
-        g.drawImage(images.walk, 0, frame * h, w, h, -w / 2, 0, w, h + 2);
-        return g.restore();
-      } else {
-        return g.drawImage(images.walk, 0, frame * h, w, h, x, y, w, h + 2);
-      }
-    };
-
-    HeroSprite.prototype.tick = function() {
-      var didHitWall, edge, isGrounded, vel;
-
-      isGrounded = false;
-      didHitWall = false;
-      edge = this.body.GetContactList();
-      while (edge != null) {
-        if (edge.other.GetType() === Body.b2_staticBody) {
-          edge.contact.GetWorldManifold(scratchManifold);
-          if (scratchManifold.m_normal.y < -0.95) {
-            isGrounded = true;
-          } else if (!didHitWall) {
-            if (this.walkingSpeed > 0) {
-              if (scratchManifold.m_normal.x > 0.95) {
-                didHitWall = true;
-              }
-            } else {
-              if (scratchManifold.m_normal.x < -0.95) {
-                didHitWall = true;
-              }
-            }
-          }
-        }
-        edge = edge.next;
-      }
-      if (isGrounded) {
-        if (didHitWall) {
-          this.walkingSpeed = -this.walkingSpeed;
-        }
-        vel = this.body.GetLinearVelocity();
-        vel.x = this.walkingSpeed;
-        return this.body.SetLinearVelocity(vel);
-      }
-    };
-
-    return HeroSprite;
-
-  })();
-
-  CupcakeSprite = (function() {
-    function CupcakeSprite(options) {
-      var bodyDef, fixDef;
-
-      bodyDef = new BodyDef;
-      bodyDef.fixedRotation = true;
-      bodyDef.type = Body.b2_dynamicBody;
-      bodyDef.position.Set(options.x, options.y);
-      this.body = world.physics.CreateBody(bodyDef);
-      fixDef = new FixtureDef;
-      fixDef.density = 1;
-      fixDef.friction = 0.5;
-      fixDef.restitution = 0.2;
-      fixDef.shape = new PolygonShape;
-      fixDef.shape.SetAsBox(0.95, 0.95);
-      this.body.CreateFixture(fixDef);
-      this.body.SetUserData(this);
-    }
-
-    CupcakeSprite.prototype.outOfBounds = function() {
-      var p;
-
-      p = this.body.GetPosition();
-      return p.x < -1 || p.x > TILE_WIDTH + 1 || p.y > TILE_HEIGHT + 2;
-    };
-
-    CupcakeSprite.prototype.draw = function() {
-      var frame, h, p, w, x, y;
-
-      frame = Math.floor(seconds() * 7.5) % 6;
-      w = images.cupcake.width;
-      h = images.cupcake.height / 6;
-      p = this.body.GetPosition();
-      x = 32 * (p.x - 1);
-      y = 32 * (p.y - 1) + 4;
-      return g.drawImage(images.cupcake, 0, frame * h, w, h, x, y, w, h);
-    };
-
-    CupcakeSprite.prototype.tick = function() {};
-
-    return CupcakeSprite;
-
-  })();
-
-  images = new ImageGroup(['images/pencil.png', 'images/background.jpg', 'images/winScreen.png', 'images/loseScreen.png', 'images/startScreen_baked.png', 'images/first_baked.png', 'images/lose1.png', 'images/walk.png', 'images/cupcake.png', 'images/second_baked.png', 'images/lose2.png', "images/cat_01.png", "images/cat_02.png", "images/cat_03.png", "images/cat_04.png", "images/cat_05.png", "images/cat_06.png", "images/cat_07.png", "images/cat_08.png", "images/cat_09.png", "images/cat_10.png", "images/cat_11.png", "images/cat_12.png", "images/cat_13.png", "images/cat_14.png", "images/cat_15.png", "images/cat_16.png", "images/cat_17.png", "images/cat_18.png", 'images/third_baked.png', 'images/lose3.png', 'images/cloudy_01.png', 'images/cloudy_02.png', 'images/cloudy_03.png', 'images/cloudy_04.png', 'images/cloudy_05.png', 'images/cloudy_06.png', 'images/cloudy_07.png', 'images/cloudy_08.png', 'images/cloudy_09.png', 'images/cloudy_10.png', 'images/drop_01.png', 'images/drop_02.png', 'images/drop_03.png', 'images/flower1.png', 'images/flower2.png', 'images/flower3.png']);
+  images = new ImageGroup(['images/pencil.png', 'images/background.jpg', 'images/winScreen.png', 'images/loseScreen.png', 'images/winwinwin.png', 'images/startScreen_baked.png', 'images/first_baked.png', 'images/lose1.png', 'images/walk.png', 'images/cupcake.png', 'images/second_baked.png', 'images/lose2.png', "images/cat_01.png", "images/cat_02.png", "images/cat_03.png", "images/cat_04.png", "images/cat_05.png", "images/cat_06.png", "images/cat_07.png", "images/cat_08.png", "images/cat_09.png", "images/cat_10.png", "images/cat_11.png", "images/cat_12.png", "images/cat_13.png", "images/cat_14.png", "images/cat_15.png", "images/cat_16.png", "images/cat_17.png", "images/cat_18.png", 'images/third_baked.png', 'images/lose3.png', 'images/cloudy_01.png', 'images/cloudy_02.png', 'images/cloudy_03.png', 'images/cloudy_04.png', 'images/cloudy_05.png', 'images/cloudy_06.png', 'images/cloudy_07.png', 'images/cloudy_08.png', 'images/cloudy_09.png', 'images/cloudy_10.png', 'images/drop_01.png', 'images/drop_02.png', 'images/drop_03.png', 'images/flower1.png', 'images/flower2.png', 'images/flower3.png', 'images/lose4.png', 'images/spaceDebris_01.png', 'images/spaceDebris_02.png', 'images/spaceDebris_03.png', 'images/spaceDebris_04.png', 'images/spaceDebris_05.png', 'images/spaceDebris_06.png', 'images/spaceDebris_07.png', 'images/spaceDebris_08.png', 'images/spaceDebris_09.png', 'images/spaceDebris_10.png', 'images/spaceDebris_11.png', 'images/spaceDebris_12.png', 'images/spaceDebris_13.png', 'images/spaceDebris_14.png', 'images/spaceDebris_15.png', 'images/spaceDebris_16.png', 'images/spaceDebris_17.png', 'images/balloony_01.png', 'images/balloony_02.png', 'images/balloony_03.png', 'images/balloony_04.png', 'images/balloony_05.png', 'images/balloony_06.png', 'images/balloony_07.png', 'images/balloony_08.png', 'images/raccoony_01.png', 'images/raccoony_02.png', 'images/raccoony_03.png', 'images/raccoony_04.png', 'images/raccoony_05.png']);
 
   startScreen = {
     tilemap: images.startScreenBaked,
@@ -1214,6 +281,9 @@
   firstLevel = (function() {
     var i, options;
 
+    ({
+      gravity: GRAVITY
+    });
     options = {
       tilemap: images.firstBaked,
       solidTiles: (function() {
@@ -1249,6 +319,7 @@
   })();
 
   secondLevel = {
+    gravity: GRAVITY,
     tilemap: images.secondBaked,
     solidTiles: [241, 242, 243, 268, 269, 294, 295, 296, 297, 298, 299, 300, 301, 302, 320, 321, 322, 323, 324, 325, 326, 327, 328, 350, 351, 352],
     distractionTiles: [267, 270, 271, 275, 276, 272, 273, 274, 348, 349, 353, 354],
@@ -1519,6 +590,7 @@
   };
 
   thirdLevel = {
+    gravity: GRAVITY,
     tilemap: images.thirdBaked,
     solidTiles: (function() {
       _results = [];
@@ -1599,10 +671,1532 @@
     ]
   };
 
+  fourthLevel = {
+    makeFloor: true,
+    gravity: Vec2.Make(0, 0),
+    debrisShapes: [
+      {
+        x: 88,
+        y: 84,
+        r: 68
+      }, {
+        x: 33,
+        y: 49,
+        r: 31
+      }, {
+        x: 53,
+        y: 51,
+        r: 48
+      }, {
+        x: 32,
+        y: 32,
+        r: 31
+      }, {
+        x: 51,
+        y: 51,
+        r: 48
+      }, {
+        x: 45,
+        y: 45,
+        r: 60
+      }, {
+        x: 53,
+        y: 92,
+        r: 60
+      }, {
+        x: 16,
+        y: 16,
+        r: 16
+      }, {
+        x: 43,
+        y: 78,
+        r: 42
+      }, {
+        x: 44,
+        y: 37,
+        r: 32
+      }, {
+        x: 58,
+        y: 46,
+        r: 37
+      }, {
+        x: 63,
+        y: 51,
+        r: 43
+      }, {
+        x: 37,
+        y: 35,
+        r: 28
+      }, {
+        x: 46,
+        y: 49,
+        r: 30
+      }, {
+        x: 54,
+        y: 60,
+        r: 46
+      }, {
+        x: 76,
+        y: 69,
+        r: 60
+      }, {
+        x: 32,
+        y: 21,
+        r: 20
+      }
+    ]
+  };
+
+  sixthLevel = {
+    gravity: Vec2.Make(0, -10),
+    balloonShapes: [
+      {
+        v: [65, 4, 116, 12, 150, 46, 145, 93, 80, 90]
+      }, {
+        v: [148, 91, 128, 134, 83, 159, 83, 85]
+      }, {
+        v: [89, 165, 25, 126, 3, 80, 81, 78]
+      }, {
+        v: [78, 11, 88, 106, 12, 115, 10, 70, 44, 15]
+      }, {
+        x: 61,
+        y: 166,
+        w: 32,
+        h: 50
+      }, {
+        x: 65,
+        y: 208,
+        w: 32,
+        h: 50
+      }, {
+        x: 68,
+        y: 246,
+        w: 32,
+        h: 50
+      }, {
+        x: 70,
+        y: 298,
+        w: 32,
+        h: 50
+      }
+    ],
+    raccoonShapes: [
+      {
+        x: 32,
+        y: 43,
+        r: 32
+      }, {
+        x: 105,
+        y: 58,
+        r: 32
+      }, {
+        x: 65,
+        y: 93,
+        r: 55
+      }, {
+        x: 80,
+        y: 158,
+        r: 37
+      }, {
+        v: [19, 117, 51, 115, 47, 187, 22, 166]
+      }
+    ]
+  };
+
+  world = null;
+
+  STATUS_ACTIVE = 0;
+
+  STATUS_WIN = 1;
+
+  STATUS_LOSE = 2;
+
+  Tile = (function() {
+    function Tile(i) {
+      this.x = i % TILE_WIDTH;
+      this.y = (i - this.x) / TILE_WIDTH;
+      this.type = TILE_TYPE_EMPTY;
+      this.body = null;
+    }
+
+    Tile.prototype.isSolid = function() {
+      return this.type === TILE_TYPE_SOLID;
+    };
+
+    Tile.prototype.isVisible = function() {
+      return this.type !== TILE_TYPE_EMPTY;
+    };
+
+    Tile.prototype.setSolid = function() {
+      var bodyDef, fixDef;
+
+      if (this.type !== TILE_TYPE_EMPTY) {
+        alert('EEK!');
+      }
+      this.type = TILE_TYPE_SOLID;
+      fixDef = new FixtureDef;
+      fixDef.density = 1;
+      fixDef.friction = 0.5;
+      fixDef.restitution = 0.2;
+      bodyDef = new BodyDef;
+      bodyDef.type = Body.b2_staticBody;
+      bodyDef.position.Set(this.x + 0.5, this.y + 0.5);
+      fixDef.shape = new PolygonShape;
+      fixDef.shape.SetAsBox(0.5, 0.5);
+      this.body = world.physics.CreateBody(bodyDef);
+      this.body.CreateFixture(fixDef);
+      return this.body.SetUserData(this);
+    };
+
+    Tile.prototype.setDistracting = function() {
+      if (this.type !== TILE_TYPE_EMPTY) {
+        alert('ACK!');
+      }
+      return this.type = TILE_TYPE_DISTRACTION;
+    };
+
+    Tile.prototype.erase = function() {
+      if (this.type === TILE_TYPE_EMPTY) {
+        return false;
+      }
+      if (this.body != null) {
+        world.physics.DestroyBody(this.body);
+        this.body = null;
+      }
+      this.type = TILE_TYPE_EMPTY;
+      return true;
+    };
+
+    Tile.prototype.draw = function() {
+      var x, y;
+
+      if (!this.isVisible()) {
+        return;
+      }
+      x = this.x << 5;
+      y = this.y << 5;
+      return g.drawImage(world.tilemap, x + x, y + y, 64, 64, x - 16, y - 16, 64, 64);
+    };
+
+    return Tile;
+
+  })();
+
+  World = (function() {
+    function World(options) {
+      var i, _k, _l, _len, _len1, _ref, _ref1, _ref2;
+
+      if (world != null) {
+        world.onDestroy();
+      }
+      world = this;
+      this.tilemap = (_ref = options.tilemap) != null ? _ref : null;
+      this.offsetX = 0.5 * (canvas.width - WORLD_WIDTH) + 2;
+      this.offsetY = 0.5 * (canvas.height - WORLD_HEIGHT) + 20;
+      this.physics = setupPhysics(options.gravity ? options.gravity : GRAVITY, options.makeFloor ? options.makeFloor : false);
+      this.mPhysicsMouse = Vec2.Make(0, 0);
+      this.tiles = (function() {
+        var _k, _ref1, _results2;
+
+        _results2 = [];
+        for (i = _k = 0, _ref1 = TILE_WIDTH * TILE_HEIGHT - 1; 0 <= _ref1 ? _k <= _ref1 : _k >= _ref1; i = 0 <= _ref1 ? ++_k : --_k) {
+          _results2.push(new Tile(i));
+        }
+        return _results2;
+      })();
+      if (options.solidTiles != null) {
+        _ref1 = options.solidTiles;
+        for (_k = 0, _len = _ref1.length; _k < _len; _k++) {
+          i = _ref1[_k];
+          this.tiles[i].setSolid();
+        }
+      }
+      if (options.distractionTiles != null) {
+        _ref2 = options.distractionTiles;
+        for (_l = 0, _len1 = _ref2.length; _l < _len1; _l++) {
+          i = _ref2[_l];
+          this.tiles[i].setDistracting();
+        }
+      }
+      this.status = STATUS_ACTIVE;
+    }
+
+    World.prototype.onTick = function() {};
+
+    World.prototype.onDraw = function() {};
+
+    World.prototype.onDestroy = function() {};
+
+    World.prototype.physicsMouse = function() {
+      this.mPhysicsMouse.Set((mouseX - this.offsetX) / PIXELS_PER_METER, (mouseY - this.offsetY) / PIXELS_PER_METER);
+      return this.mPhysicsMouse;
+    };
+
+    World.prototype.tick = function() {
+      var _ref;
+
+      if (this.status !== STATUS_ACTIVE) {
+        return;
+      }
+      this.physics.Step(deltaSeconds(), 10, 10);
+      if (this.status === STATUS_ACTIVE) {
+        if (mouseDown) {
+          if ((_ref = this.tileUnder(mouseX, mouseY)) != null) {
+            _ref.erase();
+          }
+        }
+        return this.onTick();
+      }
+    };
+
+    World.prototype.draw = function() {
+      var tile, _k, _len, _ref;
+
+      g.save();
+      g.translate(this.offsetX, this.offsetY);
+      if (DEBUG_PHYSICS && showPhysics) {
+        this.physics.DrawDebugData();
+      }
+      if (this.tilemap != null) {
+        _ref = this.tiles;
+        for (_k = 0, _len = _ref.length; _k < _len; _k++) {
+          tile = _ref[_k];
+          tile.draw();
+        }
+      }
+      this.onDraw();
+      return g.restore();
+    };
+
+    World.prototype.getTile = function(x, y) {
+      if ((this.tilemap != null) && x >= 0 && x < TILE_WIDTH && y >= 0 && y < TILE_HEIGHT) {
+        return this.tiles[tileId(x, y)];
+      } else {
+        return null;
+      }
+    };
+
+    World.prototype.tileUnder = function(px, py) {
+      return this.getTile(Math.floor((px - this.offsetX) / TILE_SIZE), Math.floor((py - this.offsetY) / TILE_SIZE));
+    };
+
+    return World;
+
+  })();
+
+  setupPhysics = function(gravity, withFloor) {
+    var body, bodyDef, debugDraw, fixDef, physics;
+
+    physics = new b2World(gravity, false);
+    bodyDef = new BodyDef;
+    bodyDef.type = Body.b2_staticBody;
+    bodyDef.position.Set(TILE_WIDTH / 2, TILE_HEIGHT + 0.5);
+    fixDef = new FixtureDef;
+    fixDef.density = 1.0;
+    fixDef.friction = 0.5;
+    fixDef.restitution = 0.5;
+    fixDef.shape = new PolygonShape;
+    fixDef.shape.SetAsBox(TILE_WIDTH / 2 + 1, 0.5);
+    if (withFloor) {
+      physics.CreateBody(bodyDef).CreateFixture(fixDef);
+    }
+    bodyDef.position.y = -0.5;
+    body = physics.CreateBody(bodyDef).CreateFixture(fixDef);
+    fixDef.shape = new PolygonShape;
+    fixDef.shape.SetAsBox(0.5, TILE_HEIGHT / 2);
+    bodyDef.position.Set(-0.5, TILE_HEIGHT / 2);
+    physics.CreateBody(bodyDef).CreateFixture(fixDef);
+    bodyDef.position.x = TILE_WIDTH + 0.5;
+    physics.CreateBody(bodyDef).CreateFixture(fixDef);
+    if (DEBUG_PHYSICS) {
+      debugDraw = new DebugDraw();
+      debugDraw.SetSprite(g);
+      debugDraw.SetDrawScale(PIXELS_PER_METER);
+      debugDraw.SetFillAlpha(0.5);
+      debugDraw.SetLineThickness(4.0);
+      debugDraw.SetFlags(DebugDraw.e_shapeBit | DebugDraw.e_jointBit);
+      physics.SetDebugDraw(debugDraw);
+    }
+    return physics;
+  };
+
+  HeroSprite = (function() {
+    function HeroSprite(options) {
+      var bodyDef, fixDef, vert, _k, _len, _ref;
+
+      this.walkingSpeed = options.walkingSpeed;
+      bodyDef = new BodyDef;
+      bodyDef.fixedRotation = true;
+      bodyDef.type = Body.b2_dynamicBody;
+      bodyDef.position.Set(options.x, options.y);
+      this.body = world.physics.CreateBody(bodyDef);
+      fixDef = new FixtureDef;
+      fixDef.density = 1;
+      fixDef.friction = 0.5;
+      fixDef.restitution = 0.2;
+      fixDef.shape = new PolygonShape;
+      fixDef.shape.SetAsBox(0.45, 0.7);
+      _ref = fixDef.shape.GetVertices();
+      for (_k = 0, _len = _ref.length; _k < _len; _k++) {
+        vert = _ref[_k];
+        vert.y -= 0.255;
+      }
+      this.body.CreateFixture(fixDef);
+      fixDef.shape = new CircleShape(0.45);
+      fixDef.shape.SetLocalPosition(new Vec2(0, 0.5));
+      this.body.CreateFixture(fixDef);
+      this.body.SetUserData(this);
+    }
+
+    HeroSprite.prototype.outOfBounds = function() {
+      var p;
+
+      p = this.body.GetPosition();
+      return p.x < -1 || p.x > TILE_WIDTH + 1 || p.y > TILE_HEIGHT + 2;
+    };
+
+    HeroSprite.prototype.draw = function() {
+      var frame, h, p, w, x, y;
+
+      p = this.body.GetPosition();
+      x = 32 * (p.x - 0.5) - 6;
+      y = 32 * (p.y - 1);
+      frame = Math.floor(seconds() * 10) % 10;
+      w = images.walk.width;
+      h = images.walk.height / 10;
+      if (this.walkingSpeed < 0) {
+        g.save();
+        g.translate(x, y);
+        g.translate(w / 2, 0);
+        g.scale(-1, 1);
+        g.drawImage(images.walk, 0, frame * h, w, h, -w / 2, 0, w, h + 2);
+        return g.restore();
+      } else {
+        return g.drawImage(images.walk, 0, frame * h, w, h, x, y, w, h + 2);
+      }
+    };
+
+    HeroSprite.prototype.tick = function() {
+      var didHitWall, edge, isGrounded, vel;
+
+      isGrounded = false;
+      didHitWall = false;
+      edge = this.body.GetContactList();
+      while (edge != null) {
+        if (edge.other.GetType() === Body.b2_staticBody) {
+          edge.contact.GetWorldManifold(scratchManifold);
+          if (scratchManifold.m_normal.y < -0.95) {
+            isGrounded = true;
+          } else if (!didHitWall) {
+            if (this.walkingSpeed > 0) {
+              if (scratchManifold.m_normal.x > 0.95) {
+                didHitWall = true;
+              }
+            } else {
+              if (scratchManifold.m_normal.x < -0.95) {
+                didHitWall = true;
+              }
+            }
+          }
+        }
+        edge = edge.next;
+      }
+      if (isGrounded) {
+        if (didHitWall) {
+          this.walkingSpeed = -this.walkingSpeed;
+        }
+        vel = this.body.GetLinearVelocity();
+        vel.x = this.walkingSpeed;
+        return this.body.SetLinearVelocity(vel);
+      }
+    };
+
+    return HeroSprite;
+
+  })();
+
+  CupcakeSprite = (function() {
+    function CupcakeSprite(options) {
+      var bodyDef, fixDef;
+
+      bodyDef = new BodyDef;
+      bodyDef.fixedRotation = true;
+      bodyDef.type = Body.b2_dynamicBody;
+      bodyDef.position.Set(options.x, options.y);
+      this.body = world.physics.CreateBody(bodyDef);
+      fixDef = new FixtureDef;
+      fixDef.density = 1;
+      fixDef.friction = 0.5;
+      fixDef.restitution = 0.2;
+      fixDef.shape = new PolygonShape;
+      fixDef.shape.SetAsBox(0.95, 0.95);
+      this.body.CreateFixture(fixDef);
+      this.body.SetUserData(this);
+    }
+
+    CupcakeSprite.prototype.outOfBounds = function() {
+      var p;
+
+      p = this.body.GetPosition();
+      return p.x < -1 || p.x > TILE_WIDTH + 1 || p.y > TILE_HEIGHT + 2;
+    };
+
+    CupcakeSprite.prototype.draw = function() {
+      var frame, h, p, w, x, y;
+
+      frame = Math.floor(seconds() * 7.5) % 6;
+      w = images.cupcake.width;
+      h = images.cupcake.height / 6;
+      p = this.body.GetPosition();
+      x = 32 * (p.x - 1);
+      y = 32 * (p.y - 1) + 4;
+      return g.drawImage(images.cupcake, 0, frame * h, w, h, x, y, w, h);
+    };
+
+    CupcakeSprite.prototype.tick = function() {};
+
+    return CupcakeSprite;
+
+  })();
+
+  World1 = (function(_super) {
+    __extends(World1, _super);
+
+    function World1() {
+      var listener,
+        _this = this;
+
+      World1.__super__.constructor.call(this, firstLevel);
+      this.hero = new HeroSprite(firstLevel.hero);
+      this.cupcake = new CupcakeSprite(firstLevel.cupcake);
+      listener = new ContactListener;
+      listener.BeginContact = function(contact) {
+        if (contact.GetFixtureA().GetBody().GetUserData() === _this.hero) {
+          if (contact.GetFixtureB().GetBody().GetUserData() === _this.cupcake) {
+            return _this.status = STATUS_WIN;
+          }
+        } else if (contact.GetFixtureB().GetBody().GetUserData() === _this.hero) {
+          if (contact.GetFixtureA().GetBody().GetUserData() === _this.cupcake) {
+            return _this.status = STATUS_WIN;
+          }
+        }
+      };
+      this.physics.SetContactListener(listener);
+    }
+
+    World1.prototype.onTick = function() {
+      this.cupcake.tick();
+      this.hero.tick();
+      if (this.cupcake.outOfBounds() || this.hero.outOfBounds()) {
+        return this.status = STATUS_LOSE;
+      }
+    };
+
+    World1.prototype.onDraw = function() {
+      this.cupcake.draw();
+      return this.hero.draw();
+    };
+
+    return World1;
+
+  })(World);
+
+  createBox = function(x, y, w, h) {
+    var dx, dy, result, vert, _k, _len, _ref;
+
+    result = new PolygonShape;
+    result.SetAsBox(0.5 * MPP * w, 0.5 * MPP * h);
+    dx = MPP * x - (-0.5 * MPP * w);
+    dy = MPP * y - (-0.5 * MPP * h);
+    _ref = result.GetVertices();
+    for (_k = 0, _len = _ref.length; _k < _len; _k++) {
+      vert = _ref[_k];
+      vert.x += dx;
+      vert.y += dy;
+    }
+    return result;
+  };
+
+  CatSprite = (function() {
+    function CatSprite(i, options) {
+      var bodyDef, fixDef, shape, _k, _len, _ref;
+
+      i += 1;
+      this.image = i >= 10 ? images['cat' + i] : images['cat0' + i];
+      bodyDef = new BodyDef;
+      bodyDef.type = Body.b2_dynamicBody;
+      bodyDef.position.Set(options.x, options.y);
+      bodyDef.angle = options.a;
+      this.body = world.physics.CreateBody(bodyDef);
+      fixDef = new FixtureDef;
+      fixDef.density = 2;
+      fixDef.friction = 0.4;
+      fixDef.restitution = 0.9;
+      _ref = options.shapes;
+      for (_k = 0, _len = _ref.length; _k < _len; _k++) {
+        shape = _ref[_k];
+        if ('r' in shape) {
+          fixDef.shape = new CircleShape(MPP * shape.r);
+          fixDef.shape.SetLocalPosition(Vec2.Make(MPP * shape.x, MPP * shape.y));
+          this.body.CreateFixture(fixDef);
+        } else {
+          fixDef.shape = createBox(shape.x, shape.y, shape.w, shape.h);
+          this.body.CreateFixture(fixDef);
+        }
+      }
+      this.body.SetUserData(this);
+      this.next = null;
+      this.prev = null;
+      this.isAlive = true;
+      this.alpha = 1;
+    }
+
+    CatSprite.prototype.destroy = function() {
+      this.next = null;
+      this.prev = null;
+      world.physics.DestroyBody(this.body);
+      return this.isAlive = false;
+    };
+
+    CatSprite.prototype.outOfBounds = function() {
+      return this.body.GetPosition().y > TILE_HEIGHT + 5;
+    };
+
+    CatSprite.prototype.draw = function() {
+      var p;
+
+      p = this.body.GetPosition();
+      g.save();
+      g.translate(32 * p.x, 32 * p.y);
+      g.rotate(this.body.GetAngle());
+      g.drawImage(this.image, 0, 0);
+      return g.restore();
+    };
+
+    CatSprite.prototype.drawFadeOut = function() {
+      var p;
+
+      p = this.body.GetPosition();
+      this.alpha *= 0.75;
+      g.save();
+      g.globalAlpha = this.alpha;
+      g.translate(32 * p.x, 32 * p.y);
+      g.rotate(this.body.GetAngle());
+      g.drawImage(this.image, 0, 0);
+      g.restore();
+      return this.alpha < 0.02;
+    };
+
+    return CatSprite;
+
+  })();
+
+  World2 = (function(_super) {
+    __extends(World2, _super);
+
+    function World2() {
+      var cat, i, _k, _ref, _ref1;
+
+      World2.__super__.constructor.call(this, secondLevel);
+      this.firstCat = null;
+      this.fadingCats = null;
+      for (i = _k = _ref = secondLevel.cats.length - 1; _ref <= 0 ? _k <= 0 : _k >= 0; i = _ref <= 0 ? ++_k : --_k) {
+        cat = new CatSprite(i, secondLevel.cats[i]);
+        cat.next = this.firstCat;
+        if ((_ref1 = this.firstCat) != null) {
+          _ref1.prev = cat;
+        }
+        this.firstCat = cat;
+      }
+    }
+
+    World2.prototype.destroyCat = function(cat) {
+      var _ref, _ref1, _ref2;
+
+      if (!cat.isAlive) {
+        return;
+      }
+      if ((_ref = cat.next) != null) {
+        _ref.prev = cat.prev;
+      }
+      if ((_ref1 = cat.prev) != null) {
+        _ref1.next = cat.next;
+      }
+      if (cat === this.firstCat) {
+        this.firstCat = cat.next;
+      }
+      cat.destroy();
+      cat.next = this.fadingCats;
+      if ((_ref2 = this.fadingCats) != null) {
+        _ref2.prev = cat;
+      }
+      return this.fadingCats = cat;
+    };
+
+    World2.prototype.onTick = function() {
+      var cat, selectFixture, _results2,
+        _this = this;
+
+      if (mouseDown) {
+        selectFixture = function(fixture) {
+          var _ref;
+
+          if (((_ref = fixture.GetBody().GetUserData()) != null ? _ref.constructor : void 0) === CatSprite) {
+            _this.destroyCat(fixture.GetBody().GetUserData());
+          }
+          return false;
+        };
+        this.physics.QueryPoint(selectFixture, this.physicsMouse());
+      }
+      if (this.firstCat != null) {
+        cat = this.firstCat;
+        _results2 = [];
+        while (cat != null) {
+          if (cat.outOfBounds()) {
+            this.status = STATUS_LOSE;
+            break;
+          }
+          _results2.push(cat = cat.next);
+        }
+        return _results2;
+      } else {
+        if (this.fadingCats == null) {
+          return this.status = STATUS_WIN;
+        }
+      }
+    };
+
+    World2.prototype.onDraw = function() {
+      var c, next, _ref, _ref1, _results2;
+
+      c = this.firstCat;
+      while (c != null) {
+        c.draw();
+        c = c.next;
+      }
+      c = this.fadingCats;
+      _results2 = [];
+      while (c != null) {
+        next = c.next;
+        if (c.drawFadeOut()) {
+          if ((_ref = c.next) != null) {
+            _ref.prev = c.prev;
+          }
+          if ((_ref1 = c.prev) != null) {
+            _ref1.next = c.next;
+          }
+          if (c === this.fadingCats) {
+            this.fadingCats = c.next;
+          } else {
+
+          }
+        }
+        _results2.push(c = next);
+      }
+      return _results2;
+    };
+
+    World2.prototype.onDestroy = function() {};
+
+    return World2;
+
+  })(World);
+
+  cloudBits = null;
+
+  DROP_SPAWNRATE = 0.05;
+
+  DROP_HEADING = Vec2.Make(2, 4);
+
+  createPolygon = function(options) {
+    var i, result, v, verts;
+
+    result = new PolygonShape;
+    v = options.v;
+    verts = (function() {
+      var _k, _ref, _results2;
+
+      _results2 = [];
+      for (i = _k = 0, _ref = (v.length / 2) - 1; 0 <= _ref ? _k <= _ref : _k >= _ref; i = 0 <= _ref ? ++_k : --_k) {
+        _results2.push(Vec2.Make(MPP * v[i + i], MPP * v[i + i + 1]));
+      }
+      return _results2;
+    })();
+    result.SetAsArray(verts);
+    return result;
+  };
+
+  drawBodyImage = function(body, img) {
+    var p;
+
+    p = body.GetPosition();
+    g.save();
+    g.translate(PIXELS_PER_METER * p.x, PIXELS_PER_METER * p.y);
+    g.rotate(body.GetAngle());
+    g.drawImage(img, 0, 0);
+    return g.restore();
+  };
+
+  CloudSprite = (function() {
+    function CloudSprite(options) {
+      var bodyDef, fixDef, fixture, i, shape, _k, _len, _ref;
+
+      this.speed = options.speed;
+      bodyDef = new BodyDef;
+      bodyDef.type = Body.b2_kinematicBody;
+      bodyDef.position.Set(options.x, options.y);
+      bodyDef.userData = this;
+      this.body = world.physics.CreateBody(bodyDef);
+      fixDef = new FixtureDef;
+      fixDef.isSensor = true;
+      this.mask = 0;
+      this.fixtureCount = thirdLevel.cloudShapes.length;
+      _ref = thirdLevel.cloudShapes;
+      for (i = _k = 0, _len = _ref.length; _k < _len; i = ++_k) {
+        shape = _ref[i];
+        fixDef.shape = new CircleShape(MPP * shape.r);
+        fixDef.shape.SetLocalPosition(Vec2.Make(MPP * shape.x, MPP * shape.y));
+        fixDef.userData = i;
+        fixture = this.body.CreateFixture(fixDef);
+        this.mask |= 1 << i;
+      }
+      this.timeout = expovariate(DROP_SPAWNRATE);
+    }
+
+    CloudSprite.prototype.hasBit = function(i) {
+      return (this.mask & (1 << i)) !== 0;
+    };
+
+    CloudSprite.prototype.hasAnyBits = function() {
+      return this.mask !== 0;
+    };
+
+    CloudSprite.prototype.clearBit = function(i) {
+      return this.mask = this.mask & (~(1 << i));
+    };
+
+    CloudSprite.prototype.eraseFixture = function(fixture) {
+      if (!this.hasBit(fixture.GetUserData())) {
+        return;
+      }
+      this.body.DestroyFixture(fixture);
+      this.clearBit(fixture.GetUserData());
+      this.fixtureCount--;
+      if (!this.hasAnyBits()) {
+        return world.destroyCloud(this);
+      }
+    };
+
+    CloudSprite.prototype.tick = function() {
+      var c, fl, i, p, randomFixtureIndex, x, y, _k, _ref;
+
+      p = this.body.GetPosition();
+      p.x += this.speed * deltaSeconds();
+      if (p.x > TILE_WIDTH + 0.5) {
+        p.x = -5;
+      }
+      this.body.SetPosition(p);
+      this.timeout -= deltaSeconds();
+      if (this.timeout < 0) {
+        this.timeout = expovariate(DROP_SPAWNRATE);
+        randomFixtureIndex = Math.floor(randRange(0, this.fixtureCount));
+        fl = this.body.GetFixtureList();
+        for (i = _k = 1; 1 <= randomFixtureIndex ? _k <= randomFixtureIndex : _k >= randomFixtureIndex; i = 1 <= randomFixtureIndex ? ++_k : --_k) {
+          if (fl.GetNext() != null) {
+            fl = fl.GetNext();
+          }
+        }
+        p = this.body.GetPosition();
+        c = fl.GetShape().GetLocalPosition();
+        x = p.x + c.x;
+        y = p.y + c.y;
+        if (x > 0.25 && x < TILE_WIDTH - 0.25) {
+          return (_ref = world.getFreeDrop()) != null ? _ref.spawn(x, y) : void 0;
+        }
+      }
+    };
+
+    CloudSprite.prototype.draw = function() {
+      var bit, i, p, _k, _len, _results2;
+
+      p = this.body.GetPosition();
+      _results2 = [];
+      for (i = _k = 0, _len = cloudBits.length; _k < _len; i = ++_k) {
+        bit = cloudBits[i];
+        if (this.hasBit(i)) {
+          _results2.push(g.drawImage(bit, PIXELS_PER_METER * p.x, PIXELS_PER_METER * p.y));
+        }
+      }
+      return _results2;
+    };
+
+    return CloudSprite;
+
+  })();
+
+  DropSprite = (function() {
+    function DropSprite(type) {
+      var bodyDef, fixDef;
+
+      this.image = images["drop0" + (type + 1)];
+      bodyDef = new BodyDef;
+      bodyDef.type = Body.b2_dynamicBody;
+      bodyDef.position.Set(-10, -10);
+      bodyDef.active = false;
+      bodyDef.userData = this;
+      this.body = world.physics.CreateBody(bodyDef);
+      fixDef = new FixtureDef;
+      fixDef.density = 1;
+      fixDef.friction = 0.5;
+      fixDef.restitution = 0.5;
+      fixDef.shape = createPolygon(thirdLevel.dropShapes[type]);
+      this.body.CreateFixture(fixDef);
+      this.timeout = -1;
+      this.next = null;
+    }
+
+    DropSprite.prototype.spawn = function(x, y) {
+      this.body.SetPosition(Vec2.Make(x, y));
+      this.body.SetAngle(0);
+      this.body.SetAngularVelocity(0);
+      this.body.SetLinearVelocity(DROP_HEADING);
+      this.body.SetActive(true);
+      return this.timeout = 1500;
+    };
+
+    DropSprite.prototype.tick = function() {
+      if (!this.body.IsActive()) {
+        return;
+      }
+      this.timeout -= dt;
+      if (this.timeout < 0) {
+        this.body.SetActive(false);
+        this.body.SetPosition(-10, -10);
+        return world.repool(this);
+      } else {
+        if (this.body.GetPosition().y > TILE_HEIGHT + 5) {
+          world.incFlower(this.body.GetPosition().x);
+          this.body.SetActive(false);
+          this.body.SetPosition(-10, -10);
+          return world.repool(this);
+        }
+      }
+    };
+
+    DropSprite.prototype.draw = function() {
+      if (!this.body.IsActive()) {
+        return;
+      }
+      return drawBodyImage(this.body, this.image);
+    };
+
+    return DropSprite;
+
+  })();
+
+  FlowerSprite = (function() {
+    function FlowerSprite(i) {
+      this.image = images["flower" + (i + 1)];
+      this.count = 0;
+      this.y = 0;
+      this.x = (1 + 2 * i) * canvas.width / 6.0 - 16;
+      if (i === 1) {
+        this.x += 32;
+      }
+    }
+
+    FlowerSprite.prototype.onDrop = function() {
+      if (this.count < 20) {
+        return this.count++;
+      }
+    };
+
+    FlowerSprite.prototype.visible = function() {
+      return this.y > 0.99 * this.image.height;
+    };
+
+    FlowerSprite.prototype.draw = function() {
+      if (this.count < 20) {
+        return;
+      }
+      this.y += 0.2 * (this.image.height - this.y);
+      return g.drawImage(this.image, this.x - 0.5 * this.image.width, canvas.height - this.y - world.offsetY);
+    };
+
+    return FlowerSprite;
+
+  })();
+
+  World3 = (function(_super) {
+    __extends(World3, _super);
+
+    function World3() {
+      var cloud, i, _k, _ref;
+
+      World3.__super__.constructor.call(this, thirdLevel);
+      if (cloudBits == null) {
+        cloudBits = [images.cloudy01, images.cloudy02, images.cloudy03, images.cloudy04, images.cloudy05, images.cloudy06, images.cloudy07, images.cloudy08, images.cloudy09, images.cloudy10];
+      }
+      this.clouds = (function() {
+        var _k, _len, _ref, _results2;
+
+        _ref = thirdLevel.clouds;
+        _results2 = [];
+        for (_k = 0, _len = _ref.length; _k < _len; _k++) {
+          cloud = _ref[_k];
+          _results2.push(new CloudSprite(cloud));
+        }
+        return _results2;
+      })();
+      this.drops = (function() {
+        var _k, _results2;
+
+        _results2 = [];
+        for (i = _k = 1; _k <= 128; i = ++_k) {
+          _results2.push(new DropSprite(i % thirdLevel.dropShapes.length));
+        }
+        return _results2;
+      })();
+      this.flowers = (function() {
+        var _k, _results2;
+
+        _results2 = [];
+        for (i = _k = 0; _k <= 2; i = ++_k) {
+          _results2.push(new FlowerSprite(i));
+        }
+        return _results2;
+      })();
+      this.timeout = 1500;
+      this.nextFreeDrop = this.drops[0];
+      for (i = _k = 0, _ref = this.drops.length - 2; 0 <= _ref ? _k <= _ref : _k >= _ref; i = 0 <= _ref ? ++_k : --_k) {
+        this.drops[i].next = this.drops[i + 1];
+      }
+    }
+
+    World3.prototype.getFreeDrop = function() {
+      var result;
+
+      if (this.nextFreeDrop == null) {
+        return null;
+      }
+      result = this.nextFreeDrop;
+      this.nextFreeDrop = result.next;
+      result.next = null;
+      return result;
+    };
+
+    World3.prototype.repool = function(drop) {
+      drop.next = this.nextFreeDrop;
+      return this.nextFreeDrop = drop;
+    };
+
+    World3.prototype.incFlower = function(x) {
+      switch (false) {
+        case !(x < TILE_WIDTH / 3.0):
+          return this.flowers[0].onDrop();
+        case !(x > 2 * TILE_WIDTH / 3.0):
+          return this.flowers[2].onDrop();
+        default:
+          return this.flowers[1].onDrop();
+      }
+    };
+
+    World3.prototype.destroyCloud = function(cloud) {
+      var i;
+
+      i = this.clouds.indexOf(cloud);
+      return this.clouds.splice(i, 1);
+    };
+
+    World3.prototype.onTick = function() {
+      var cloud, drop, selectFixture, _k, _l, _len, _len1, _ref, _ref1,
+        _this = this;
+
+      if (mouseDown) {
+        selectFixture = function(fixture) {
+          var target;
+
+          target = fixture.GetBody().GetUserData();
+          if ((target != null ? target.constructor : void 0) === CloudSprite) {
+            target.eraseFixture(fixture);
+          }
+          return false;
+        };
+        this.physics.QueryPoint(selectFixture, this.physicsMouse());
+      }
+      if (this.clouds.length > 0) {
+        _ref = this.clouds;
+        for (_k = 0, _len = _ref.length; _k < _len; _k++) {
+          cloud = _ref[_k];
+          cloud.tick();
+        }
+        _ref1 = this.drops;
+        for (_l = 0, _len1 = _ref1.length; _l < _len1; _l++) {
+          drop = _ref1[_l];
+          drop.tick();
+        }
+      } else {
+        this.status = STATUS_LOSE;
+      }
+      if (this.flowers[0].visible() && this.flowers[1].visible() && this.flowers[2].visible()) {
+        this.timeout -= dt;
+        if (this.timeout < 0) {
+          return this.status = STATUS_WIN;
+        }
+      }
+    };
+
+    World3.prototype.onDraw = function() {
+      var cloud, drop, flower, _k, _l, _len, _len1, _len2, _m, _ref, _ref1, _ref2, _results2;
+
+      _ref = this.clouds;
+      for (_k = 0, _len = _ref.length; _k < _len; _k++) {
+        cloud = _ref[_k];
+        cloud.draw();
+      }
+      _ref1 = this.drops;
+      for (_l = 0, _len1 = _ref1.length; _l < _len1; _l++) {
+        drop = _ref1[_l];
+        drop.draw();
+      }
+      _ref2 = this.flowers;
+      _results2 = [];
+      for (_m = 0, _len2 = _ref2.length; _m < _len2; _m++) {
+        flower = _ref2[_m];
+        _results2.push(flower.draw());
+      }
+      return _results2;
+    };
+
+    World3.prototype.onDestroy = function() {};
+
+    return World3;
+
+  })(World);
+
+  DebrisSprite = (function() {
+    function DebrisSprite(idx) {
+      var bodyDef, dx, dy, fixDef, k, shape;
+
+      this.idx = idx;
+      this.img = this.idx < 10 ? images["spaceDebris0" + this.idx] : images["spaceDebris" + this.idx];
+      shape = fourthLevel.debrisShapes[this.idx - 1];
+      bodyDef = new BodyDef;
+      bodyDef.type = (this.isSun() ? Body.b2_kinematicBody : Body.b2_dynamicBody);
+      if (this.isSun()) {
+        bodyDef.position.x = 0.5 * TILE_WIDTH - shape.x * MPP;
+        bodyDef.position.y = 0.5 * TILE_HEIGHT - shape.y * MPP;
+      } else {
+        bodyDef.position.Set(randRange(2, TILE_WIDTH - 2), randRange(2, TILE_HEIGHT - 2));
+        dx = bodyDef.position.x - 0.5 * TILE_WIDTH;
+        dy = bodyDef.position.y - 0.5 * TILE_HEIGHT;
+        k = randRange(5, 50) / Math.sqrt(dx * dx + dy * dy);
+        dx *= k;
+        dy *= k;
+        bodyDef.linearVelocity.Set(-dy, dx);
+        bodyDef.angularVelocity = randRange(-1, 1);
+      }
+      bodyDef.angularDamping = 50;
+      bodyDef.userData = this;
+      this.body = world.physics.CreateBody(bodyDef);
+      fixDef = new FixtureDef;
+      fixDef.density = 1;
+      fixDef.friction = 0.05;
+      fixDef.restitution = 0.8;
+      fixDef.shape = new CircleShape(MPP * shape.r);
+      this.center = Vec2.Make(MPP * shape.x, MPP * shape.y);
+      fixDef.shape.SetLocalPosition(this.center);
+      this.body.CreateFixture(fixDef);
+      this.force = Vec2.Make(0, 0);
+      this.loc = Vec2.Make(0, 0);
+      this.next = null;
+      this.prev = null;
+      this.alpha = 1;
+    }
+
+    DebrisSprite.prototype.isSun = function() {
+      return this.idx === 16;
+    };
+
+    DebrisSprite.prototype.tick = function() {
+      var dx, dy, gravity, k, mass, p, rsq;
+
+      if (this.isSun()) {
+        return;
+      }
+      p = this.body.GetPosition();
+      this.loc.Set(p.x + this.center.x, p.y + this.center.y);
+      dx = 0.5 * TILE_WIDTH - this.loc.x;
+      dy = 0.5 * TILE_HEIGHT - this.loc.y;
+      rsq = dx * dx + dy * dy;
+      k = 1.0 / Math.sqrt(rsq);
+      mass = this.body.GetMass();
+      gravity = 50.0 * mass * k;
+      this.force.Set(k * dx * gravity, k * dy * gravity);
+      return this.body.ApplyForce(this.force, this.loc);
+    };
+
+    DebrisSprite.prototype.draw = function() {
+      return drawBodyImage(this.body, this.img);
+    };
+
+    DebrisSprite.prototype.drawFadeOut = function() {
+      this.alpha *= 0.75;
+      g.globalAlpha = this.alpha;
+      drawBodyImage(this.body, this.img);
+      return this.alpha > 0.01;
+    };
+
+    return DebrisSprite;
+
+  })();
+
+  World4 = (function(_super) {
+    __extends(World4, _super);
+
+    function World4() {
+      var i;
+
+      World4.__super__.constructor.call(this, fourthLevel);
+      this.debris = (function() {
+        var _k, _results2;
+
+        _results2 = [];
+        for (i = _k = 1; _k <= 17; i = ++_k) {
+          _results2.push(new DebrisSprite(i));
+        }
+        return _results2;
+      })();
+      this.fadeOutList = null;
+      this.sunDead = false;
+    }
+
+    World4.prototype.destroy = function(debris) {
+      var i, _ref;
+
+      if (debris.isSun()) {
+        this.sunDead = true;
+      }
+      i = this.debris.indexOf(debris);
+      if (i >= 0) {
+        if (i >= 0) {
+          this.debris.splice(i, 1);
+        }
+        debris.next = this.fadeOutList;
+        if ((_ref = this.fadeOutList) != null) {
+          _ref.prev = debris;
+        }
+        return this.fadeOutList = debris;
+      }
+    };
+
+    World4.prototype.onTick = function() {
+      var d, selectFixture, _k, _len, _ref,
+        _this = this;
+
+      if (mouseDown) {
+        selectFixture = function(fixture) {
+          var target;
+
+          target = fixture.GetBody().GetUserData();
+          if ((target != null ? target.constructor : void 0) === DebrisSprite) {
+            _this.destroy(target);
+          }
+          return false;
+        };
+        this.physics.QueryPoint(selectFixture, this.physicsMouse());
+      }
+      if (!this.sunDead) {
+        _ref = this.debris;
+        for (_k = 0, _len = _ref.length; _k < _len; _k++) {
+          d = _ref[_k];
+          d.tick();
+        }
+      }
+      if (this.debris.length === 1 && this.debris[0].isSun() && this.fadeOutList === null) {
+        return this.status = STATUS_WIN;
+      }
+    };
+
+    World4.prototype.onDraw = function() {
+      var d, next, _k, _len, _ref, _ref1, _ref2;
+
+      _ref = this.debris;
+      for (_k = 0, _len = _ref.length; _k < _len; _k++) {
+        d = _ref[_k];
+        d.draw();
+      }
+      g.save();
+      d = this.fadeOutList;
+      while (d != null) {
+        next = d.next;
+        if (!d.drawFadeOut()) {
+          if ((_ref1 = d.next) != null) {
+            _ref1.prev = d.prev;
+          }
+          if ((_ref2 = d.prev) != null) {
+            _ref2.next = d.next;
+          }
+          if (d === this.fadeOutList) {
+            this.fadeOutList = d.next;
+          }
+          if (d.isSun()) {
+            this.status = STATUS_LOSE;
+          }
+        }
+        d = next;
+      }
+      return g.restore();
+    };
+
+    World4.prototype.onDestroy = function() {};
+
+    return World4;
+
+  })(World);
+
+  balloonBits = null;
+
+  raccoonBits = null;
+
+  BalloonSprite = (function() {
+    function BalloonSprite() {
+      var bodyDef, fixDef, fixture, i, shape, _k, _len, _ref;
+
+      bodyDef = new BodyDef;
+      bodyDef.type = Body.b2_dynamicBody;
+      bodyDef.position.Set(450 / 32, 120 / 32);
+      bodyDef.userData = this;
+      bodyDef.angularDamping = 10;
+      this.body = world.physics.CreateBody(bodyDef);
+      fixDef = new FixtureDef;
+      fixDef.isSensor = true;
+      this.mask = 0;
+      this.fixtureCount = sixthLevel.balloonShapes.length;
+      _ref = sixthLevel.balloonShapes;
+      for (i = _k = 0, _len = _ref.length; _k < _len; i = ++_k) {
+        shape = _ref[i];
+        if ('v' in shape) {
+          fixDef.shape = createPolygon(shape);
+        } else if ('r' in shape) {
+          fixDef.shape = new CircleShape(MPP * shape.r);
+          fixDef.shape.SetLocalPosition(Vec2.Make(MPP * shape.x, MPP * shape.y));
+        } else if ('w' in shape) {
+          fixDef.shape = createBox(shape.x, shape.y, shape.w, shape.h);
+        }
+        fixDef.userData = i;
+        fixture = this.body.CreateFixture(fixDef);
+        this.mask |= 1 << i;
+      }
+    }
+
+    BalloonSprite.prototype.hasBit = function(i) {
+      return (this.mask & (1 << i)) !== 0;
+    };
+
+    BalloonSprite.prototype.hasAnyBits = function() {
+      return this.mask !== 0;
+    };
+
+    BalloonSprite.prototype.clearBit = function(i) {
+      return this.mask = this.mask & (~(1 << i));
+    };
+
+    BalloonSprite.prototype.hasRubberBits = function() {
+      return this.hasBit(0) && this.hasBit(1) && this.hasBit(2) && this.hasBit(3);
+    };
+
+    BalloonSprite.prototype.eraseFixture = function(fixture) {
+      var i;
+
+      i = fixture.GetUserData();
+      if (!(this.hasBit(i) && i < 4)) {
+        return;
+      }
+      this.body.DestroyFixture(fixture);
+      this.clearBit(i);
+      this.fixtureCount--;
+      if (!this.hasAnyBits()) {
+        return world.destroyBalloon(this);
+      }
+    };
+
+    BalloonSprite.prototype.tick = function() {
+      return this.body.SetAngle(0.1 * Math.sin(10 * seconds()));
+    };
+
+    BalloonSprite.prototype.draw = function() {
+      var bit, i, p, _k, _len, _results2;
+
+      p = this.body.GetPosition();
+      _results2 = [];
+      for (i = _k = 0, _len = balloonBits.length; _k < _len; i = ++_k) {
+        bit = balloonBits[i];
+        if (this.hasBit(i)) {
+          _results2.push(drawBodyImage(this.body, bit));
+        }
+      }
+      return _results2;
+    };
+
+    return BalloonSprite;
+
+  })();
+
+  RaccoonSprite = (function() {
+    function RaccoonSprite() {
+      var bodyDef, fixDef, fixture, i, shape, _k, _len, _ref;
+
+      bodyDef = new BodyDef;
+      bodyDef.type = Body.b2_kinematicBody;
+      bodyDef.position.Set(450 / 32, 320 / 32);
+      bodyDef.userData = this;
+      this.body = world.physics.CreateBody(bodyDef);
+      fixDef = new FixtureDef;
+      fixDef.isSensor = true;
+      this.mask = 0;
+      this.fixtureCount = sixthLevel.raccoonShapes.length;
+      _ref = sixthLevel.raccoonShapes;
+      for (i = _k = 0, _len = _ref.length; _k < _len; i = ++_k) {
+        shape = _ref[i];
+        if ('v' in shape) {
+          fixDef.shape = createPolygon(shape);
+        } else if ('r' in shape) {
+          fixDef.shape = new CircleShape(MPP * shape.r);
+          fixDef.shape.SetLocalPosition(Vec2.Make(MPP * shape.x, MPP * shape.y));
+        } else if ('w' in shape) {
+          fixDef.shape = createBox(shape.x, shape.y, shape.w, shape.h);
+        }
+        fixDef.userData = i;
+        fixture = this.body.CreateFixture(fixDef);
+        this.mask |= 1 << i;
+      }
+    }
+
+    RaccoonSprite.prototype.hasBit = function(i) {
+      return (this.mask & (1 << i)) !== 0;
+    };
+
+    RaccoonSprite.prototype.hasAnyBits = function() {
+      return this.mask !== 0;
+    };
+
+    RaccoonSprite.prototype.clearBit = function(i) {
+      return this.mask = this.mask & (~(1 << i));
+    };
+
+    RaccoonSprite.prototype.eraseFixture = function(fixture) {
+      if (!this.hasBit(fixture.GetUserData())) {
+        return;
+      }
+      this.body.DestroyFixture(fixture);
+      this.clearBit(fixture.GetUserData());
+      this.fixtureCount--;
+      if (!this.hasAnyBits()) {
+        return world.destroyRaccoon(this);
+      }
+    };
+
+    RaccoonSprite.prototype.tick = function() {};
+
+    RaccoonSprite.prototype.draw = function() {
+      var bit, i, p, _k, _len, _results2;
+
+      p = this.body.GetPosition();
+      _results2 = [];
+      for (i = _k = 0, _len = raccoonBits.length; _k < _len; i = ++_k) {
+        bit = raccoonBits[i];
+        if (this.hasBit(i)) {
+          _results2.push(drawBodyImage(this.body, bit));
+        }
+      }
+      return _results2;
+    };
+
+    return RaccoonSprite;
+
+  })();
+
+  World6 = (function(_super) {
+    __extends(World6, _super);
+
+    function World6() {
+      var anchor, mouseDef, p;
+
+      World6.__super__.constructor.call(this, sixthLevel);
+      if (balloonBits == null) {
+        balloonBits = [images.balloony01, images.balloony02, images.balloony03, images.balloony04, images.balloony05, images.balloony06, images.balloony07, images.balloony08];
+        raccoonBits = [images.raccoony01, images.raccoony02, images.raccoony03, images.raccoony04, images.raccoony05];
+      }
+      this.balloon = new BalloonSprite;
+      this.raccoon = new RaccoonSprite;
+      anchor = new RevoluteJointDef;
+      anchor.Initialize(this.balloon.body, this.raccoon.body, Vec2.Make(16.78125, 14.5625));
+      this.joint = this.physics.CreateJoint(anchor);
+      mouseDef = new MouseJointDef;
+      p = this.balloon.body.GetPosition();
+    }
+
+    World6.prototype.destroyRaccoon = function(raccoon) {
+      this.physics.DestroyJoint(this.joint);
+      if (raccoon === this.raccoon) {
+        return this.raccoon = null;
+      }
+    };
+
+    World6.prototype.destroyBalloon = function(balloon) {
+      if (balloon === this.balloon) {
+        return this.balloon = null;
+      }
+    };
+
+    World6.prototype.onTick = function() {
+      var selectFixture, _ref, _ref1,
+        _this = this;
+
+      if ((_ref = this.balloon) != null) {
+        _ref.tick();
+      }
+      if (mouseDown) {
+        selectFixture = function(fixture) {
+          var target;
+
+          target = fixture.GetBody().GetUserData();
+          if (typeof target.eraseFixture === "function") {
+            target.eraseFixture(fixture);
+          }
+          return false;
+        };
+        this.physics.QueryPoint(selectFixture, this.physicsMouse());
+        console.log(this.balloon.body.GetPosition().y);
+      }
+      if (!((_ref1 = this.balloon) != null ? _ref1.hasRubberBits() : void 0)) {
+        this.status = STATUS_LOSE;
+      }
+      if (this.balloon.body.GetPosition().y < -20) {
+        return this.status = STATUS_WIN;
+      }
+    };
+
+    World6.prototype.onDraw = function() {
+      var _ref, _ref1;
+
+      if ((_ref = this.balloon) != null) {
+        _ref.draw();
+      }
+      return (_ref1 = this.raccoon) != null ? _ref1.draw() : void 0;
+    };
+
+    World6.prototype.onDestroy = function() {};
+
+    return World6;
+
+  })(World);
+
   doc = null;
 
   $(function() {
-    var beginGameplay, beginLose, beginStartScreen, beginWin, currentLevel, doGameplay, doLoseScreenIn, doStartScreen, doWinScreenIn, timeout, totalLevels, transition;
+    var beginGameplay, beginLoadingGame, beginLose, beginStartScreen, beginWin, currentLevel, doGameplay, doLoadGame, doLoseScreenIn, doStartScreen, doThankYou, doWinScreenIn, fakeTimer, lastMinuteBlash, music, progress, timeout, totalLevels, transition;
 
     canvas = $('canvas')[0];
     if ((canvas != null ? canvas.getContext : void 0) == null) {
@@ -1651,16 +2245,9 @@
     new Pencil;
     transition = 0;
     timeout = 0;
-    totalLevels = 3;
+    totalLevels = 5;
     currentLevel = -1;
     beginStartScreen = function() {
-      var music;
-
-      if ((new Audio()).canPlayType('audio/ogg; codecs=vorbis') === 'probably') {
-        music = new Audio('audio/music.ogg');
-        music.loop = true;
-        music.play();
-      }
       new World(startScreen);
       return doStartScreen();
     };
@@ -1699,8 +2286,16 @@
         case 2:
           new World3;
           break;
+        case 3:
+          new World4;
+          break;
+        case 4:
+          new World6;
+          break;
         default:
-          world.onDestroy();
+          if (world != null) {
+            world.onDestroy();
+          }
           world = null;
       }
       if (world != null) {
@@ -1748,7 +2343,6 @@
       world.draw();
       g.globalAlpha = 1;
       g.drawImage(images.loseScreen, 0.5 * (canvas.width - images.loseScreen.width), 175 * transition);
-      pencil.draw();
       if (transition >= 0.8) {
         hint = images["lose" + (currentLevel + 1)];
         if (hint != null) {
@@ -1756,6 +2350,7 @@
           g.drawImage(hint, 0.5 * (canvas.width - hint.width), 500 - 50 * hintt * hintt);
         }
       }
+      pencil.draw();
       timeout += deltaSeconds();
       if (timeout > duration) {
         return beginGameplay();
@@ -1784,26 +2379,79 @@
       g.drawImage(images.winScreen, 0.5 * (canvas.width - images.winScreen.width), 175 * transition);
       pencil.draw();
       timeout += deltaSeconds();
-      if (timeout > duration && currentLevel < totalLevels - 1) {
-        currentLevel++;
-        return beginGameplay();
+      if (timeout > duration) {
+        if (currentLevel < totalLevels - 1) {
+          currentLevel++;
+          return beginGameplay();
+        } else {
+          return doThankYou();
+        }
       } else {
         return queueFrame(doWinScreenIn);
       }
     };
-    return (function() {
-      if (images.loading()) {
+    lastMinuteBlash = 0;
+    doThankYou = function() {
+      lastMinuteBlash += 0.25 * (1 - lastMinuteBlash);
+      if (lastMinuteBlash > 0.999) {
+        g.globalAlpha = 1;
+      } else {
+        g.globalAlpha = lastMinuteBlash;
+      }
+      clearBackground();
+      g.drawImage(images.winwinwin, 0.5 * (canvas.width - images.winwinwin.width), 0.5 * (canvas.height - images.winwinwin.height));
+      g.globalAlpha = 1;
+      pencil.draw();
+      return queueFrame(doThankYou);
+    };
+    loadingImages.startLoading();
+    if (currentLevel === -1) {
+      if ((new Audio()).canPlayType('audio/ogg; codecs=vorbis') === 'probably') {
+        music = new Audio('audio/music.ogg');
+        music.loop = true;
+        music.play();
+      }
+    }
+    (function() {
+      if (loadingImages.loading()) {
         if (images.failed()) {
           return alert("Eek! Failed to load Assets :*(");
         } else {
           return queueFrame(arguments.callee);
+        }
+      } else {
+        return beginLoadingGame();
+      }
+    })();
+    progress = 0;
+    fakeTimer = 0;
+    beginLoadingGame = function() {
+      images.startLoading();
+      return doLoadGame();
+    };
+    return doLoadGame = function() {
+      var i, im, rawProgress;
+
+      clearBackground();
+      if (images.loading()) {
+        if (images.failed()) {
+          return alert("Eek! Failed to load Assets :*(");
+        } else {
+          rawProgress = images.progress();
+          progress += 0.1 * (rawProgress - progress);
+          i = Math.floor(progress * 9 + 0.5);
+          i = Math.min(8, i);
+          im = loadingImages["donutErase0" + (9 - i)];
+          g.drawImage(loadingImages.loadingText, 0.5 * (canvas.width - loadingImages.loadingText.width), 0.5 * (canvas.height - loadingImages.loadingText.height));
+          g.drawImage(im, 0.5 * (canvas.width - im.width), 0.5 * (canvas.height - im.height) + 50);
+          return queueFrame(doLoadGame);
         }
       } else if (currentLevel === -1) {
         return beginStartScreen();
       } else {
         return beginGameplay();
       }
-    })();
+    };
   });
 
 }).call(this);

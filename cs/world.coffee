@@ -4,14 +4,60 @@ STATUS_ACTIVE = 0
 STATUS_WIN = 1
 STATUS_LOSE = 2
 
+class Tile
+	constructor: (i) ->
+		@x = i % TILE_WIDTH
+		@y = (i - @x) / TILE_WIDTH
+		@type = TILE_TYPE_EMPTY
+		@body = null
+
+	isSolid: -> @type == TILE_TYPE_SOLID
+	isVisible: -> @type != TILE_TYPE_EMPTY
+
+	setSolid: ->
+		alert 'EEK!' if @type != TILE_TYPE_EMPTY
+		@type = TILE_TYPE_SOLID
+		fixDef = new FixtureDef
+		fixDef.density = 1
+		fixDef.friction = 0.5
+		fixDef.restitution = 0.2
+		bodyDef = new BodyDef
+		bodyDef.type = Body.b2_staticBody
+		bodyDef.position.Set(@x+0.5, @y+0.5)
+		fixDef.shape = new PolygonShape
+		fixDef.shape.SetAsBox(0.5, 0.5)
+		@body = world.physics.CreateBody(bodyDef)
+		@body.CreateFixture(fixDef)
+		@body.SetUserData(this)
+
+	setDistracting: ->
+		alert 'ACK!' if @type != TILE_TYPE_EMPTY
+		@type = TILE_TYPE_DISTRACTION
+
+	erase: ->
+		return false if @type == TILE_TYPE_EMPTY
+		if @body?
+			world.physics.DestroyBody(@body) 
+			@body = null
+		@type = TILE_TYPE_EMPTY
+		true
+
+	draw: ->
+		return unless @isVisible()
+		x = @x<<5; y = @y<<5
+		g.drawImage(world.tilemap, x+x, y+y, 64, 64, x-16, y-16, 64, 64)
+
 class World
 	constructor: (options)->
 		world.onDestroy() if world?
 		world = this
-		{@tilemap} = options
+		@tilemap = options.tilemap ? null
 		@offsetX = 0.5 * (canvas.width - WORLD_WIDTH) + 2
 		@offsetY = 0.5 * (canvas.height - WORLD_HEIGHT) + 20
-		@physics = setupPhysics()
+		@physics = setupPhysics(
+			if options.gravity then options.gravity else GRAVITY, 
+			if options.makeFloor then options.makeFloor else no
+		)
 		@mPhysicsMouse = Vec2.Make(0,0)		
 		@tiles = (new Tile(i) for i in [0..(TILE_WIDTH*TILE_HEIGHT-1)])
 		if options.solidTiles?
@@ -43,12 +89,13 @@ class World
 		g.save()
 		g.translate(@offsetX, @offsetY)
 		@physics.DrawDebugData() if DEBUG_PHYSICS and showPhysics
-		tile.draw() for tile in @tiles				
+		if @tilemap?
+			tile.draw() for tile in @tiles				
 		@onDraw()
 		g.restore()
 
 	getTile: (x,y) -> 
-		if x >= 0 and x < TILE_WIDTH and y >= 0 and y < TILE_HEIGHT then @tiles[tileId(x,y)] else null
+		if @tilemap? && x>=0 && x<TILE_WIDTH && y>=0 && y<TILE_HEIGHT then @tiles[tileId(x,y)] else null
 
 	tileUnder: (px, py) -> 
 		@getTile(
@@ -56,8 +103,8 @@ class World
 			Math.floor((py - @offsetY) / TILE_SIZE)
 		)
 
-setupPhysics = ->
-	physics = new b2World(new Vec2(0, GRAVITY), no)
+setupPhysics = (gravity, withFloor) ->
+	physics = new b2World(gravity, no)
 
 
 	bodyDef = new BodyDef
@@ -67,11 +114,11 @@ setupPhysics = ->
 	fixDef = new FixtureDef
 	fixDef.density = 1.0
 	fixDef.friction = 0.5
-	fixDef.restitution = 0.2
+	fixDef.restitution = 0.5
 	fixDef.shape = new PolygonShape
 	fixDef.shape.SetAsBox(TILE_WIDTH/2+1, 0.5)
 
-	# physics.CreateBody(bodyDef).CreateFixture(fixDef)
+	physics.CreateBody(bodyDef).CreateFixture(fixDef) if withFloor
 	bodyDef.position.y = -0.5
 	body = physics.CreateBody(bodyDef).CreateFixture(fixDef)
 	fixDef.shape = new PolygonShape

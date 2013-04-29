@@ -1,8 +1,22 @@
+loadingImages = new ImageGroup [
+	'images/donut_erase_01.png'
+	'images/donut_erase_02.png'
+	'images/donut_erase_03.png'
+	'images/donut_erase_04.png'
+	'images/donut_erase_05.png'
+	'images/donut_erase_06.png'
+	'images/donut_erase_07.png'
+	'images/donut_erase_08.png'
+	'images/donut_erase_09.png'
+	'images/loadingText.png'
+]
+
 images = new ImageGroup [
 	'images/pencil.png'
 	'images/background.jpg'
 	'images/winScreen.png'
 	'images/loseScreen.png'
+	'images/winwinwin.png'
 
 	'images/startScreen_baked.png'
 
@@ -50,6 +64,45 @@ images = new ImageGroup [
 	'images/flower1.png'
 	'images/flower2.png'
 	'images/flower3.png'
+
+	'images/lose4.png'
+	'images/spaceDebris_01.png'
+	'images/spaceDebris_02.png'
+	'images/spaceDebris_03.png'
+	'images/spaceDebris_04.png'
+	'images/spaceDebris_05.png'
+	'images/spaceDebris_06.png'
+	'images/spaceDebris_07.png'
+	'images/spaceDebris_08.png'
+	'images/spaceDebris_09.png'
+	'images/spaceDebris_10.png'
+	'images/spaceDebris_11.png'
+	'images/spaceDebris_12.png'
+	'images/spaceDebris_13.png'
+	'images/spaceDebris_14.png'
+	'images/spaceDebris_15.png'
+	'images/spaceDebris_16.png'
+	'images/spaceDebris_17.png'
+
+	# 'images/scratch0_baked.png'
+	# 'images/scratch1_baked.png'
+	# 'images/scratch2_baked.png'
+
+	# 'images/lose5.png'
+	'images/balloony_01.png'
+	'images/balloony_02.png'
+	'images/balloony_03.png'
+	'images/balloony_04.png'
+	'images/balloony_05.png'
+	'images/balloony_06.png'
+	'images/balloony_07.png'
+	'images/balloony_08.png'
+	'images/raccoony_01.png'
+	'images/raccoony_02.png'
+	'images/raccoony_03.png'
+	'images/raccoony_04.png'
+	'images/raccoony_05.png'
+
 ]
 
 startScreen =
@@ -63,6 +116,7 @@ startScreen =
 
 
 firstLevel = do ->
+	gravity: GRAVITY
 	options = 
 		tilemap: images.firstBaked
 		solidTiles: (tileId(i,14) for i in [0..TILE_WIDTH-1])
@@ -85,6 +139,7 @@ firstLevel = do ->
 	options
 
 secondLevel = 
+	gravity: GRAVITY
 	tilemap: images.secondBaked
 	solidTiles: [
 		241, 242, 243
@@ -120,6 +175,7 @@ secondLevel =
 	]
 
 thirdLevel = 
+	gravity: GRAVITY
 	tilemap: images.thirdBaked
 	solidTiles: [390..415]
 	distractionTiles: [364..389]
@@ -144,6 +200,56 @@ thirdLevel =
 		{x:8, y:0.5, speed:2.5}
 		{x:1, y:4, speed:8}
 		{x:20, y:2.5, speed:1}
+	]
+
+fourthLevel = 
+	makeFloor: yes
+	gravity: Vec2.Make(0,0)
+	debrisShapes: [
+		{x:88,y:84,r:68} #alien
+		{x:33,y:49,r:31} #atoms
+		{x:53,y:51,r:48} #blackhole   
+		{x:32,y:32,r:31} #craters 
+		{x:51,y:51,r:48} #deathstar
+		{x:45,y:45,r:60} #earth
+		{x:53,y:92,r:60} #machinedude
+		{x:16,y:16,r:16} #moon
+		{x:43,y:78,r:42} #robot
+		{x:44,y:37,r:32} #rocket
+		{x:58,y:46,r:37} #sattelite
+		{x:63,y:51,r:43} #saturn
+		{x:37,y:35,r:28} #star1
+		{x:46,y:49,r:30} #star2
+		{x:54,y:60,r:46} #spaceman
+		{x:76,y:69,r:60} #sun
+		{x:32,y:21,r:20} #ufo
+	]
+
+# fifthLevel = 
+# 	tilemaps: [
+# 		images.scratch0Baked
+# 		images.scratch1Baked
+# 		images.scratch2Baked
+# 	]
+
+sixthLevel = 
+	gravity: Vec2.Make(0,-10)
+	balloonShapes: [
+		{v:[65,4, 116,12, 150,46, 145,93, 80,90]}
+		{v:[148,91, 128,134, 83,159, 83,85]} # {v:[148,91, 128,134, 83,159]}
+		{v:[89,165,25, 126, 3, 80, 81, 78]}
+		{v:[78,11,88,106,12,115,10,70,44,15]}
+		{x:61,y:166,w:32,h:50}
+		{x:65,y:208,w:32,h:50}
+		{x:68,y:246,w:32,h:50}
+		{x:70,y:298,w:32,h:50}
+	]
+	raccoonShapes: [
+		{x:32,y:43,r:32}   
+		{x:105,y:58,r:32} 
+		{x:65,y:93,r:55} 		  
+		{x:80,y:158,r:37} 
+		{v:[19,117,51,115,47,187,22,166]}
 	]
 
 
