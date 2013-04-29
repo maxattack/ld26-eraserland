@@ -1,2 +1,2 @@
-EASERLAND for Ludum Dare 26
+ERASERLAND for Ludum Dare 26
 http://mentalpicture.net/ld26
