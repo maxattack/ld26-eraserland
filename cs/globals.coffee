@@ -15,6 +15,8 @@ time = 0
 seconds = -> 0.001 * time
 deltaSeconds = -> 0.001 * dt 
 
+randRange = (lo,hi) -> lo + Math.random() * (hi - lo)
+expovariate = (duration) -> -Math.log(1.0 - Math.random()) * duration
 scratchManifold = new WorldManifold
 
 queueFrame = (state) ->
@@ -49,6 +51,7 @@ pixToTile = (x) -> Math.floor(K*x)
 tileId = (x,y) -> x + TILE_WIDTH * y
 
 PIXELS_PER_METER = 32
+MPP = 1.0/PIXELS_PER_METER
 
 DEBUG_PHYSICS = yes
 showPhysics = no

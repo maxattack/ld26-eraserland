@@ -7,8 +7,11 @@ from glob import glob
 
 def main():
 	for path in glob('images/*.png'):
+		print path
 		im = Image.open(path)
-		im.save(path)
+		result = Image.new('RGBA', im.size)
+		result.paste(im, (0,0))
+		result.save(path)
 
 if __name__ == '__main__':
 	main()

@@ -60,8 +60,6 @@ class ImageGroup
 	complete: -> @numLoading == 0 and @numFailed == 0
 	failed: -> @numFailed > 0
 
-randRange = (x,y) -> x + Math.random() * (y - x)
-
 # convenience names
 b2World = Box2D.Dynamics.b2World
 Vec2 = Box2D.Common.Math.b2Vec2

@@ -41,6 +41,11 @@ $ ->
 	time = rawMillis()
 	new Pencil
 
+	transition = 0
+	timeout = 0
+	totalLevels = 3
+	currentLevel = -1
+
 	beginStartScreen = ->
 		if (new Audio()).canPlayType('audio/ogg; codecs=vorbis') == 'probably'
 			music = new Audio('audio/music.ogg')
@@ -62,16 +67,12 @@ $ ->
 				break
 
 		unless anySolid
+			currentLevel = 0
 			beginGameplay()
 		else
 			world.draw()
 			pencil.draw()
 			queueFrame doStartScreen
-
-	transition = 0
-	timeout = 0
-	totalLevels = 3
-	currentLevel = 0
 
 	beginGameplay = ->
 		switch currentLevel
@@ -172,7 +173,7 @@ $ ->
 				alert "Eek! Failed to load Assets :*("
 			else
 				queueFrame arguments.callee		
+		else if currentLevel == -1
+			beginStartScreen()
 		else
-			# beginStartScreen()
-			currentLevel = 2
 			beginGameplay()

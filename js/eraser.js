@@ -30,7 +30,7 @@
 	}
 }());
 ;
-  var Body, BodyDef, CatSprite, CircleShape, ContactListener, CupcakeSprite, DEBUG_PHYSICS, DebugDraw, Fixture, FixtureDef, GRAVITY, HeroSprite, ImageGroup, K, MPP, MassData, PIXELS_PER_METER, Pencil, PolygonShape, STATUS_ACTIVE, STATUS_LOSE, STATUS_WIN, TAU, TILE_HEIGHT, TILE_SIZE, TILE_TYPE_DISTRACTION, TILE_TYPE_EMPTY, TILE_TYPE_SOLID, TILE_WIDTH, Tile, Vec2, WORLD_HEIGHT, WORLD_WIDTH, World, World1, World2, World3, WorldManifold, b2World, canvas, clearBackground, createBox, deltaSeconds, doc, dt, firstLevel, g, images, mouseDown, mousePressed, mouseReleased, mouseX, mouseY, pencil, pixToTile, queueFrame, randRange, rawMillis, scratchManifold, secondLevel, seconds, setupPhysics, showPhysics, startScreen, thirdLevel, tileId, time, world,
+  var Body, BodyDef, CatSprite, CircleShape, CloudSprite, ContactListener, CupcakeSprite, DEBUG_PHYSICS, DROP_HEADING, DROP_SPAWNRATE, DebugDraw, DropSprite, Fixture, FixtureDef, FlowerSprite, GRAVITY, HeroSprite, ImageGroup, K, MPP, MassData, PIXELS_PER_METER, Pencil, PolygonShape, STATUS_ACTIVE, STATUS_LOSE, STATUS_WIN, TAU, TILE_HEIGHT, TILE_SIZE, TILE_TYPE_DISTRACTION, TILE_TYPE_EMPTY, TILE_TYPE_SOLID, TILE_WIDTH, Tile, Vec2, WORLD_HEIGHT, WORLD_WIDTH, World, World1, World2, World3, WorldManifold, b2World, canvas, clearBackground, cloudBits, createBox, createPolygon, deltaSeconds, doc, dt, expovariate, firstLevel, g, images, mouseDown, mousePressed, mouseReleased, mouseX, mouseY, pencil, pixToTile, queueFrame, randRange, rawMillis, scratchManifold, secondLevel, seconds, setupPhysics, showPhysics, startScreen, thirdLevel, tileId, time, world, _i, _j, _results, _results1,
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
@@ -91,10 +91,6 @@
 
   })();
 
-  randRange = function(x, y) {
-    return x + Math.random() * (y - x);
-  };
-
   b2World = Box2D.Dynamics.b2World;
 
   Vec2 = Box2D.Common.Math.b2Vec2;
@@ -151,6 +147,14 @@
     return 0.001 * dt;
   };
 
+  randRange = function(lo, hi) {
+    return lo + Math.random() * (hi - lo);
+  };
+
+  expovariate = function(duration) {
+    return -Math.log(1.0 - Math.random()) * duration;
+  };
+
   scratchManifold = new WorldManifold;
 
   queueFrame = function(state) {
@@ -195,6 +199,8 @@
   };
 
   PIXELS_PER_METER = 32;
+
+  MPP = 1.0 / PIXELS_PER_METER;
 
   DEBUG_PHYSICS = true;
 
@@ -418,8 +424,6 @@
 
   })(World);
 
-  MPP = 1.0 / PIXELS_PER_METER;
-
   createBox = function(x, y, w, h) {
     var dx, dy, result, vert, _i, _len, _ref;
 
@@ -622,16 +626,367 @@
 
   })(World);
 
+  cloudBits = null;
+
+  DROP_SPAWNRATE = 0.05;
+
+  DROP_HEADING = Vec2.Make(2, 4);
+
+  createPolygon = function(options) {
+    var i, result, v, verts;
+
+    result = new PolygonShape;
+    v = options.v;
+    verts = (function() {
+      var _i, _ref, _results;
+
+      _results = [];
+      for (i = _i = 0, _ref = (v.length / 2) - 1; 0 <= _ref ? _i <= _ref : _i >= _ref; i = 0 <= _ref ? ++_i : --_i) {
+        _results.push(Vec2.Make(MPP * v[i + i], MPP * v[i + i + 1]));
+      }
+      return _results;
+    })();
+    result.SetAsArray(verts);
+    return result;
+  };
+
+  CloudSprite = (function() {
+    function CloudSprite(options) {
+      var bodyDef, fixDef, fixture, i, shape, _i, _len, _ref;
+
+      this.speed = options.speed;
+      bodyDef = new BodyDef;
+      bodyDef.type = Body.b2_kinematicBody;
+      bodyDef.position.Set(options.x, options.y);
+      bodyDef.userData = this;
+      this.body = world.physics.CreateBody(bodyDef);
+      fixDef = new FixtureDef;
+      fixDef.isSensor = true;
+      this.mask = 0;
+      this.fixtureCount = thirdLevel.cloudShapes.length;
+      _ref = thirdLevel.cloudShapes;
+      for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
+        shape = _ref[i];
+        fixDef.shape = new CircleShape(MPP * shape.r);
+        fixDef.shape.SetLocalPosition(Vec2.Make(MPP * shape.x, MPP * shape.y));
+        fixDef.userData = i;
+        fixture = this.body.CreateFixture(fixDef);
+        this.mask |= 1 << i;
+      }
+      this.timeout = expovariate(DROP_SPAWNRATE);
+    }
+
+    CloudSprite.prototype.hasBit = function(i) {
+      return (this.mask & (1 << i)) !== 0;
+    };
+
+    CloudSprite.prototype.hasAnyBits = function() {
+      return this.mask !== 0;
+    };
+
+    CloudSprite.prototype.clearBit = function(i) {
+      return this.mask = this.mask & (~(1 << i));
+    };
+
+    CloudSprite.prototype.eraseFixture = function(fixture) {
+      if (!this.hasBit(fixture.GetUserData())) {
+        return;
+      }
+      this.body.DestroyFixture(fixture);
+      this.clearBit(fixture.GetUserData());
+      this.fixtureCount--;
+      if (!this.hasAnyBits()) {
+        return world.destroyCloud(this);
+      }
+    };
+
+    CloudSprite.prototype.tick = function() {
+      var c, fl, i, p, randomFixtureIndex, x, y, _i, _ref;
+
+      p = this.body.GetPosition();
+      p.x += this.speed * deltaSeconds();
+      if (p.x > TILE_WIDTH + 0.5) {
+        p.x = -5;
+      }
+      this.body.SetPosition(p);
+      this.timeout -= deltaSeconds();
+      if (this.timeout < 0) {
+        this.timeout = expovariate(DROP_SPAWNRATE);
+        randomFixtureIndex = Math.floor(randRange(0, this.fixtureCount));
+        fl = this.body.GetFixtureList();
+        for (i = _i = 1; 1 <= randomFixtureIndex ? _i <= randomFixtureIndex : _i >= randomFixtureIndex; i = 1 <= randomFixtureIndex ? ++_i : --_i) {
+          if (fl.GetNext() != null) {
+            fl = fl.GetNext();
+          }
+        }
+        p = this.body.GetPosition();
+        c = fl.GetShape().GetLocalPosition();
+        x = p.x + c.x;
+        y = p.y + c.y;
+        if (x > 0.25 && x < TILE_WIDTH - 0.25) {
+          return (_ref = world.getFreeDrop()) != null ? _ref.spawn(x, y) : void 0;
+        }
+      }
+    };
+
+    CloudSprite.prototype.draw = function() {
+      var bit, i, p, _i, _len, _results;
+
+      p = this.body.GetPosition();
+      _results = [];
+      for (i = _i = 0, _len = cloudBits.length; _i < _len; i = ++_i) {
+        bit = cloudBits[i];
+        if (this.hasBit(i)) {
+          _results.push(g.drawImage(bit, PIXELS_PER_METER * p.x, PIXELS_PER_METER * p.y));
+        }
+      }
+      return _results;
+    };
+
+    return CloudSprite;
+
+  })();
+
+  DropSprite = (function() {
+    function DropSprite(type) {
+      var bodyDef, fixDef;
+
+      this.image = images["drop0" + (type + 1)];
+      bodyDef = new BodyDef;
+      bodyDef.type = Body.b2_dynamicBody;
+      bodyDef.position.Set(-10, -10);
+      bodyDef.active = false;
+      bodyDef.userData = this;
+      this.body = world.physics.CreateBody(bodyDef);
+      fixDef = new FixtureDef;
+      fixDef.density = 1;
+      fixDef.friction = 0.5;
+      fixDef.restitution = 0.5;
+      fixDef.shape = createPolygon(thirdLevel.dropShapes[type]);
+      this.body.CreateFixture(fixDef);
+      this.timeout = -1;
+      this.next = null;
+    }
+
+    DropSprite.prototype.spawn = function(x, y) {
+      this.body.SetPosition(Vec2.Make(x, y));
+      this.body.SetAngle(0);
+      this.body.SetAngularVelocity(0);
+      this.body.SetLinearVelocity(DROP_HEADING);
+      this.body.SetActive(true);
+      return this.timeout = 1500;
+    };
+
+    DropSprite.prototype.tick = function() {
+      if (!this.body.IsActive()) {
+        return;
+      }
+      this.timeout -= dt;
+      if (this.timeout < 0) {
+        this.body.SetActive(false);
+        this.body.SetPosition(-10, -10);
+        return world.repool(this);
+      } else {
+        if (this.body.GetPosition().y > TILE_HEIGHT + 5) {
+          world.incFlower(this.body.GetPosition().x);
+          this.body.SetActive(false);
+          this.body.SetPosition(-10, -10);
+          return world.repool(this);
+        }
+      }
+    };
+
+    DropSprite.prototype.draw = function() {
+      var p;
+
+      if (!this.body.IsActive()) {
+        return;
+      }
+      p = this.body.GetPosition();
+      g.save();
+      g.translate(PIXELS_PER_METER * p.x, PIXELS_PER_METER * p.y);
+      g.rotate(this.body.GetAngle());
+      g.drawImage(this.image, 0, 0);
+      return g.restore();
+    };
+
+    return DropSprite;
+
+  })();
+
+  FlowerSprite = (function() {
+    function FlowerSprite(i) {
+      this.image = images["flower" + (i + 1)];
+      this.count = 0;
+      this.y = 0;
+      this.x = (1 + 2 * i) * canvas.width / 6.0 - 16;
+      if (i === 1) {
+        this.x += 32;
+      }
+    }
+
+    FlowerSprite.prototype.onDrop = function() {
+      if (this.count < 20) {
+        return this.count++;
+      }
+    };
+
+    FlowerSprite.prototype.visible = function() {
+      return this.y > 0.99 * this.image.height;
+    };
+
+    FlowerSprite.prototype.draw = function() {
+      if (this.count < 20) {
+        return;
+      }
+      this.y += 0.2 * (this.image.height - this.y);
+      return g.drawImage(this.image, this.x - 0.5 * this.image.width, canvas.height - this.y - world.offsetY);
+    };
+
+    return FlowerSprite;
+
+  })();
+
   World3 = (function(_super) {
     __extends(World3, _super);
 
     function World3() {
+      var cloud, i, _i, _ref;
+
       World3.__super__.constructor.call(this, thirdLevel);
+      if (cloudBits == null) {
+        cloudBits = [images.cloudy01, images.cloudy02, images.cloudy03, images.cloudy04, images.cloudy05, images.cloudy06, images.cloudy07, images.cloudy08, images.cloudy09, images.cloudy10];
+      }
+      this.clouds = (function() {
+        var _i, _len, _ref, _results;
+
+        _ref = thirdLevel.clouds;
+        _results = [];
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          cloud = _ref[_i];
+          _results.push(new CloudSprite(cloud));
+        }
+        return _results;
+      })();
+      this.drops = (function() {
+        var _i, _results;
+
+        _results = [];
+        for (i = _i = 1; _i <= 128; i = ++_i) {
+          _results.push(new DropSprite(i % thirdLevel.dropShapes.length));
+        }
+        return _results;
+      })();
+      this.flowers = (function() {
+        var _i, _results;
+
+        _results = [];
+        for (i = _i = 0; _i <= 2; i = ++_i) {
+          _results.push(new FlowerSprite(i));
+        }
+        return _results;
+      })();
+      this.timeout = 1500;
+      this.nextFreeDrop = this.drops[0];
+      for (i = _i = 0, _ref = this.drops.length - 2; 0 <= _ref ? _i <= _ref : _i >= _ref; i = 0 <= _ref ? ++_i : --_i) {
+        this.drops[i].next = this.drops[i + 1];
+      }
     }
 
-    World3.prototype.onTick = function() {};
+    World3.prototype.getFreeDrop = function() {
+      var result;
 
-    World3.prototype.onDraw = function() {};
+      if (this.nextFreeDrop == null) {
+        return null;
+      }
+      result = this.nextFreeDrop;
+      this.nextFreeDrop = result.next;
+      result.next = null;
+      return result;
+    };
+
+    World3.prototype.repool = function(drop) {
+      drop.next = this.nextFreeDrop;
+      return this.nextFreeDrop = drop;
+    };
+
+    World3.prototype.incFlower = function(x) {
+      switch (false) {
+        case !(x < TILE_WIDTH / 3.0):
+          return this.flowers[0].onDrop();
+        case !(x > 2 * TILE_WIDTH / 3.0):
+          return this.flowers[2].onDrop();
+        default:
+          return this.flowers[1].onDrop();
+      }
+    };
+
+    World3.prototype.destroyCloud = function(cloud) {
+      var i;
+
+      i = this.clouds.indexOf(cloud);
+      return this.clouds.splice(i, 1);
+    };
+
+    World3.prototype.onTick = function() {
+      var cloud, drop, selectFixture, _i, _j, _len, _len1, _ref, _ref1,
+        _this = this;
+
+      if (mouseDown) {
+        selectFixture = function(fixture) {
+          var target;
+
+          target = fixture.GetBody().GetUserData();
+          if ((target != null ? target.constructor : void 0) === CloudSprite) {
+            target.eraseFixture(fixture);
+          }
+          return false;
+        };
+        this.physics.QueryPoint(selectFixture, this.physicsMouse());
+      }
+      if (this.clouds.length > 0) {
+        _ref = this.clouds;
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          cloud = _ref[_i];
+          cloud.tick();
+        }
+        _ref1 = this.drops;
+        for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+          drop = _ref1[_j];
+          drop.tick();
+        }
+      } else {
+        this.status = STATUS_LOSE;
+      }
+      if (this.flowers[0].visible() && this.flowers[1].visible() && this.flowers[2].visible()) {
+        this.timeout -= dt;
+        if (this.timeout < 0) {
+          return this.status = STATUS_WIN;
+        }
+      }
+    };
+
+    World3.prototype.onDraw = function() {
+      var cloud, drop, flower, _i, _j, _k, _len, _len1, _len2, _ref, _ref1, _ref2, _results;
+
+      _ref = this.clouds;
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        cloud = _ref[_i];
+        cloud.draw();
+      }
+      _ref1 = this.drops;
+      for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+        drop = _ref1[_j];
+        drop.draw();
+      }
+      _ref2 = this.flowers;
+      _results = [];
+      for (_k = 0, _len2 = _ref2.length; _k < _len2; _k++) {
+        flower = _ref2[_k];
+        _results.push(flower.draw());
+      }
+      return _results;
+    };
 
     World3.prototype.onDestroy = function() {};
 
@@ -849,7 +1204,7 @@
 
   })();
 
-  images = new ImageGroup(['images/pencil.png', 'images/background.jpg', 'images/winScreen.png', 'images/loseScreen.png', 'images/startScreen_baked.png', 'images/first_baked.png', 'images/lose1.png', 'images/walk.png', 'images/cupcake.png', 'images/second_baked.png', 'images/lose2.png', "images/cat_01.png", "images/cat_02.png", "images/cat_03.png", "images/cat_04.png", "images/cat_05.png", "images/cat_06.png", "images/cat_07.png", "images/cat_08.png", "images/cat_09.png", "images/cat_10.png", "images/cat_11.png", "images/cat_12.png", "images/cat_13.png", "images/cat_14.png", "images/cat_15.png", "images/cat_16.png", "images/cat_17.png", "images/cat_18.png"]);
+  images = new ImageGroup(['images/pencil.png', 'images/background.jpg', 'images/winScreen.png', 'images/loseScreen.png', 'images/startScreen_baked.png', 'images/first_baked.png', 'images/lose1.png', 'images/walk.png', 'images/cupcake.png', 'images/second_baked.png', 'images/lose2.png', "images/cat_01.png", "images/cat_02.png", "images/cat_03.png", "images/cat_04.png", "images/cat_05.png", "images/cat_06.png", "images/cat_07.png", "images/cat_08.png", "images/cat_09.png", "images/cat_10.png", "images/cat_11.png", "images/cat_12.png", "images/cat_13.png", "images/cat_14.png", "images/cat_15.png", "images/cat_16.png", "images/cat_17.png", "images/cat_18.png", 'images/third_baked.png', 'images/lose3.png', 'images/cloudy_01.png', 'images/cloudy_02.png', 'images/cloudy_03.png', 'images/cloudy_04.png', 'images/cloudy_05.png', 'images/cloudy_06.png', 'images/cloudy_07.png', 'images/cloudy_08.png', 'images/cloudy_09.png', 'images/cloudy_10.png', 'images/drop_01.png', 'images/drop_02.png', 'images/drop_03.png', 'images/flower1.png', 'images/flower2.png', 'images/flower3.png']);
 
   startScreen = {
     tilemap: images.startScreenBaked,
@@ -1164,7 +1519,84 @@
   };
 
   thirdLevel = {
-    tilemap: images.secondBaked
+    tilemap: images.thirdBaked,
+    solidTiles: (function() {
+      _results = [];
+      for (_i = 390; _i <= 415; _i++){ _results.push(_i); }
+      return _results;
+    }).apply(this),
+    distractionTiles: (function() {
+      _results1 = [];
+      for (_j = 364; _j <= 389; _j++){ _results1.push(_j); }
+      return _results1;
+    }).apply(this),
+    cloudShapes: [
+      {
+        x: 52,
+        y: 35,
+        r: 26
+      }, {
+        x: 80,
+        y: 25,
+        r: 21
+      }, {
+        x: 107,
+        y: 27,
+        r: 24
+      }, {
+        x: 126,
+        y: 34,
+        r: 25
+      }, {
+        x: 137,
+        y: 53,
+        r: 19
+      }, {
+        x: 120,
+        y: 70,
+        r: 27
+      }, {
+        x: 102,
+        y: 73,
+        r: 27
+      }, {
+        x: 74,
+        y: 79,
+        r: 24
+      }, {
+        x: 55,
+        y: 66,
+        r: 28
+      }, {
+        x: 34,
+        y: 60,
+        r: 22
+      }
+    ],
+    dropShapes: [
+      {
+        v: [8, 0, 15, 20, 17, 32, 8, 37, 2, 32, 2, 17]
+      }, {
+        v: [9, 1, 17, 18, 17, 26, 8, 29, 2, 24, 2, 17]
+      }, {
+        v: [11, 0, 15, 20, 7, 27, 2, 22, 2, 13]
+      }
+    ],
+    clouds: [
+      {
+        x: 8,
+        y: 0.5,
+        speed: 2.5
+      }, {
+        x: 1,
+        y: 4,
+        speed: 8
+      }, {
+        x: 20,
+        y: 2.5,
+        speed: 1
+      }
+    ]
   };
 
   doc = null;
@@ -1217,6 +1649,10 @@
     }
     time = rawMillis();
     new Pencil;
+    transition = 0;
+    timeout = 0;
+    totalLevels = 3;
+    currentLevel = -1;
     beginStartScreen = function() {
       var music;
 
@@ -1229,21 +1665,22 @@
       return doStartScreen();
     };
     doStartScreen = function() {
-      var anySolid, tile, _i, _len, _ref;
+      var anySolid, tile, _k, _len, _ref;
 
       clearBackground();
       clearBackground();
       world.tick();
       anySolid = false;
       _ref = world.tiles;
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        tile = _ref[_i];
+      for (_k = 0, _len = _ref.length; _k < _len; _k++) {
+        tile = _ref[_k];
         if (tile.isSolid()) {
           anySolid = true;
           break;
         }
       }
       if (!anySolid) {
+        currentLevel = 0;
         return beginGameplay();
       } else {
         world.draw();
@@ -1251,10 +1688,6 @@
         return queueFrame(doStartScreen);
       }
     };
-    transition = 0;
-    timeout = 0;
-    totalLevels = 3;
-    currentLevel = 0;
     beginGameplay = function() {
       switch (currentLevel) {
         case 0:
@@ -1365,8 +1798,9 @@
         } else {
           return queueFrame(arguments.callee);
         }
+      } else if (currentLevel === -1) {
+        return beginStartScreen();
       } else {
-        currentLevel = 2;
         return beginGameplay();
       }
     })();

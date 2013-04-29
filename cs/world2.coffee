@@ -1,4 +1,4 @@
-MPP = 1.0/PIXELS_PER_METER
+
 
 createBox = (x,y,w,h) ->
 	result = new PolygonShape

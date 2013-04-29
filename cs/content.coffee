@@ -31,6 +31,25 @@ images = new ImageGroup [
 	"images/cat_16.png"
 	"images/cat_17.png"
 	"images/cat_18.png"
+
+	'images/third_baked.png'
+	'images/lose3.png'
+	'images/cloudy_01.png'
+	'images/cloudy_02.png'
+	'images/cloudy_03.png'
+	'images/cloudy_04.png'
+	'images/cloudy_05.png'
+	'images/cloudy_06.png'
+	'images/cloudy_07.png'
+	'images/cloudy_08.png'
+	'images/cloudy_09.png'
+	'images/cloudy_10.png'
+	'images/drop_01.png'
+	'images/drop_02.png'
+	'images/drop_03.png'
+	'images/flower1.png'
+	'images/flower2.png'
+	'images/flower3.png'
 ]
 
 startScreen =
@@ -79,6 +98,7 @@ secondLevel =
 		348,349,353,354
 	]
 	cats: [
+		# warmed up simulation
 		{"x":12.323300015471101,"y":3.8465967395415808,"a":-11.931000187779881,"shapes":[{"r":18,"x":30,"y":28},{"x":12,"y":32,"w":58,"h":32}]}
 		{"x":19.699587234467785,"y":10.29897078983545,"a":2.8718130925751546,"shapes":[{"r":37,"x":90,"y":40},{"x":49,"y":59,"r":20}]}
 		{"x":10.778058106993631,"y":5.047338544468242,"a":13.201050215975728,"shapes":[{"x":26,"y":4,"w":41,"h":91}]}
@@ -100,5 +120,30 @@ secondLevel =
 	]
 
 thirdLevel = 
-	tilemap: images.secondBaked
+	tilemap: images.thirdBaked
+	solidTiles: [390..415]
+	distractionTiles: [364..389]
+	cloudShapes: [
+		{x:52,y:35,r:26}          
+		{x:80,y:25,r:21}          
+		{x:107,y:27,r:24}          
+		{x:126,y:34,r:25}          
+		{x:137,y:53,r:19}          
+		{x:120,y:70,r:27}          
+		{x:102,y:73,r:27}          
+		{x:74,y:79,r:24}          
+		{x:55,y:66,r:28}          
+		{x:34,y:60,r:22}          
+	]
+	dropShapes: [
+		{v:[8,0,15,20,17,32,8,37,2,32,2,17]}
+		{v:[9,1,17,18,17,26,8,29,2,24,2,17]}
+		{v:[11,0,15,20,7,27,2,22,2,13]}
+	]
+	clouds: [
+		{x:8, y:0.5, speed:2.5}
+		{x:1, y:4, speed:8}
+		{x:20, y:2.5, speed:1}
+	]
+
 
